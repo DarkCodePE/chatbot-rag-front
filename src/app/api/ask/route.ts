@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8090';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://104.130.168.24:30007';
 
 export async function POST(request: Request) {
   try {
