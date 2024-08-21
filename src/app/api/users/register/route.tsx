@@ -1,23 +1,24 @@
-import { NextResponse } from 'next/server';
+// pages/api/users/register.ts
+import type { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
 
-const API_URL = process.env.API_URL_IA || 'https://orlandokuan.org';
+const API_URL = process.env.API_URL || 'http://localhost:8000';
 
-export async function POST(request: Request) {
-    try {
-        const body = await request.json();
-        const { name, group_id } = body;
-        console.log('Received registration request:', { name, group_id });
-
-        const response = await axios.post(`${API_URL}/users`, {
-            name,
-            group_id,
-        });
-
-        console.log('API response:', response.data);
-        return NextResponse.json(response.data, { status: 200 });
-    } catch (error) {
-        console.error('Error registering user:', error);
-        return NextResponse.json({ message: 'Error registering user' }, { status: 500 });
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method === 'POST') {
+        try {
+            const { name, group_id } = req.body;
+            const response = await axios.post(`${API_URL}/users/register`, {
+                name,
+                group_id,
+            });
+            res.status(200).json(response.data);
+        } catch (error) {
+            console.error('Error registering user:', error);
+            res.status(500).json({ message: 'Error registering user' });
+        }
+    } else {
+        res.setHeader('Allow', ['POST']);
+        res.status(405).json({ message: `Method ${req.method} Not Allowed` });
     }
 }
