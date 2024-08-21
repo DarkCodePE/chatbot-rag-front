@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
 
-const API_URL = process.env.API_URL || 'http://localhost:8000';
+const API_URL = process.env.API_URL || 'http://localhost:8089';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'POST') {
