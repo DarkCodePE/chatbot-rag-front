@@ -1,35 +1,57 @@
 import React, { useState } from 'react';
-import { ChakraProvider, Box, VStack, Input, Button, Text, useToast } from '@chakra-ui/react';
-import axios, { AxiosError } from 'axios';
-import { User, UserCreate } from '../types/user';
+import {
+    Box,
+    Button,
+    FormControl,
+    FormLabel,
+    FormErrorMessage,
+    Input,
+    VStack,
+    useToast,
+} from '@chakra-ui/react';
+import axios from 'axios';
 
-export function UserRegistration() {
+interface User {
+    name: string;
+    group_id: string;
+}
+
+interface UserRegistrationProps {
+    onRegistrationSuccess: (user: User) => void;
+}
+
+export const UserRegistration: React.FC<UserRegistrationProps> = ({ onRegistrationSuccess }) => {
     const [name, setName] = useState('');
     const [groupId, setGroupId] = useState('');
-    const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const toast = useToast();
 
-    const handleRegister = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
+
         try {
-            const userCreate: UserCreate = { name, group_id: groupId };
-            const response = await axios.post<User>('/api/register', userCreate);
-            setUser(response.data);
+            console.log('Submitting registration:', { name, group_id: groupId });
+            const response = await axios.post<User>('/api/users/register', {
+                name,
+                group_id: groupId,
+            });
+
+            console.log('Registration response:', response.data);
             toast({
-                title: 'Registration successful',
+                title: 'Registration Successful',
                 description: `Welcome, ${response.data.name}!`,
                 status: 'success',
                 duration: 3000,
                 isClosable: true,
             });
+
+            onRegistrationSuccess(response.data);
         } catch (error) {
-            const axiosError = error as AxiosError;
-            console.error('Error registering user:', axiosError.response?.data || axiosError.message);
+            console.error('Registration error:', error);
             toast({
-                title: 'Registration failed',
-                description: 'There was an error registering. Please try again.',
+                title: 'Registration Failed',
+                description: 'There was an error registering your account. Please try again.',
                 status: 'error',
                 duration: 3000,
                 isClosable: true,
@@ -40,30 +62,28 @@ export function UserRegistration() {
     };
 
     return (
-        <ChakraProvider>
-            <Box maxWidth="400px" margin="auto" p={5}>
-                {!user ? (
-                    <form onSubmit={handleRegister}>
-                        <VStack spacing={4}>
-                            <Input
-                                placeholder="Enter your name"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                            />
-                            <Input
-                                placeholder="Enter your group ID"
-                                value={groupId}
-                                onChange={(e) => setGroupId(e.target.value)}
-                            />
-                            <Button type="submit" colorScheme="blue" isLoading={isLoading}>
-                                Register
-                            </Button>
-                        </VStack>
-                    </form>
-                ) : (
-                    <Text>Welcome, {user.name}! (Group: {user.group_id})</Text>
-                )}
-            </Box>
-        </ChakraProvider>
+        <Box as="form" onSubmit={handleSubmit}>
+            <VStack spacing={4}>
+                <FormControl isRequired>
+                    <FormLabel>Name</FormLabel>
+                    <Input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Enter your name"
+                    />
+                </FormControl>
+                <FormControl isRequired>
+                    <FormLabel>Group ID</FormLabel>
+                    <Input
+                        value={groupId}
+                        onChange={(e) => setGroupId(e.target.value)}
+                        placeholder="Enter your group ID"
+                    />
+                </FormControl>
+                <Button type="submit" colorScheme="blue" isLoading={isLoading}>
+                    Register
+                </Button>
+            </VStack>
+        </Box>
     );
-}
+};

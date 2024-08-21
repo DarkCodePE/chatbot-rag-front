@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
 
-const API_URL = process.env.API_URL_IA || 'http://104.130.168.24:30007';
+const API_URL = process.env.API_URL_IA || 'https://orlandokuan.org';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'GET') {
