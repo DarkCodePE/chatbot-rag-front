@@ -56,7 +56,7 @@ export default function Home() {
     const { isOpen: isCourseModalOpen, onOpen: onCourseModalOpen, onClose: onCourseModalClose } = useDisclosure();
     const { isOpen: isTopicModalOpen, onOpen: onTopicModalOpen, onClose: onTopicModalClose } = useDisclosure();
 
-    const API_URL = process.env.API_URL || 'http://localhost:8000';
+    const API_URL = process.env.API_URL || 'https://orlandokuan.org';
 
     useEffect(() => {
         fetchAllCourses();
