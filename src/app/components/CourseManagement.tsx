@@ -34,7 +34,7 @@ interface CourseManagementProps {
     user: User;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://orlandokuan.org';
+const API_URL = process.env.NEXT_PUBLIC_API_URL_PROD || 'https://orlandokuan.org';
 
 export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
     const [courses, setCourses] = useState<Course[]>([]);

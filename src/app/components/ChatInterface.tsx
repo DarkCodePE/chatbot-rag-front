@@ -21,7 +21,7 @@ interface ChatInterfaceProps {
     user: User;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://orlandokuan.org';
+const API_URL = process.env.NEXT_PUBLIC_API_URL_PROD || 'https://orlandokuan.org';
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
     const { userCourses } = useCourses();

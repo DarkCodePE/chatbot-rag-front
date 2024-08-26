@@ -26,7 +26,7 @@ interface User {
     session_id: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://orlandokuan.org';
+const API_URL = process.env.NEXT_PUBLIC_API_URL_PROD || 'https://orlandokuan.org';
 
 export default function Home() {
     const [user, setUser] = useState<User | null>(null);
