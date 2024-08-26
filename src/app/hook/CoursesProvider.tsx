@@ -18,7 +18,7 @@ interface CoursesContextType {
 
 const CoursesContext = createContext<CoursesContextType | undefined>(undefined);
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://orlandokuan.org';
+const API_URL = process.env.NEXT_PUBLIC_API_URL_PROD || 'https://orlandokuan.org';
 
 export const CoursesProvider: React.FC<{children: React.ReactNode, user: User}> = ({ children, user }) => {
     const [userCourses, setUserCourses] = useState<Course[]>([]);
