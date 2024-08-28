@@ -41,6 +41,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
     useEffect(() => {
         if (selectedCourse) {
             fetchChatList();
+            // Reset chat session when course changes
+            setChatSessionId(null);
+            setChatHistory([]);
         }
     }, [selectedCourse]);
 
@@ -158,9 +161,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
         setChatSessionId(chatId);
         setIsLoading(true);
         try {
-            // Aquí deberías cargar el historial de chat para la sesión seleccionada
             const response = await axios.get(`${API_URL}/chat/${chatId}/history`);
-            setChatHistory(response.data.history);
+            setChatHistory(response.data);
         } catch (error) {
             console.error('Error loading chat history:', error);
             toast({
@@ -175,6 +177,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
         setIsLoading(false);
     };
 
+    const handleCourseChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setSelectedCourse(e.target.value);
+        setChatSessionId(null);
+        setChatHistory([]);
+    };
+
     return (
         <HStack spacing={4} align="stretch" height="100vh">
             <VStack flex={1} spacing={4} align="stretch" p={4} bg="gray.50" overflowY="auto">
@@ -182,7 +190,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
                 <Select
                     placeholder="Select a course"
                     value={selectedCourse}
-                    onChange={(e) => setSelectedCourse(e.target.value)}
+                    onChange={handleCourseChange}
                 >
                     {userCourses.map((course) => (
                         <option key={course.id} value={course.id}>
@@ -208,7 +216,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
                             </Text>
                         </ListItem>
                     ))}
-                </List>np
+                </List>
             </VStack>
             <Divider orientation="vertical" />
             <VStack flex={2} spacing={4} align="stretch" p={4}>
