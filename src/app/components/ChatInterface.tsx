@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     VStack,
     HStack,
@@ -16,10 +16,13 @@ interface User {
     id: string;
     name: string;
 }
+
 interface ChatListItem {
     id: string;
-    topic_title: string;
+    initialTitle: string;
+    finalTitle: string | null;
     timestamp: string;
+    isTitleFinalized: boolean;
 }
 
 interface ChatInterfaceProps {
@@ -28,29 +31,56 @@ interface ChatInterfaceProps {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL_PROD || 'https://orlandokuan.org';
 
+
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
     const { userCourses } = useCourses();
     const [selectedCourse, setSelectedCourse] = useState<string>('');
     const [question, setQuestion] = useState('');
     const [chatHistory, setChatHistory] = useState<{type: string, content: string}[]>([]);
     const [chatSessionId, setChatSessionId] = useState<string | null>(null);
+    const [topicId, setTopicId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [chatList, setChatList] = useState<ChatListItem[]>([]);
+    const [currentTopicTitle, setCurrentTopicTitle] = useState<string>('');
+    const [titleTaskId, setTitleTaskId] = useState<string | null>(null);
+    const [isTitleFinalized, setIsTitleFinalized] = useState(false);
     const toast = useToast();
 
-    useEffect(() => {
-        if (selectedCourse) {
-            fetchChatList();
-            // Reset chat session when course changes
-            setChatSessionId(null);
-            setChatHistory([]);
+    const updateTitle = useCallback((chatId: string, newTitle: string, isFinalized: boolean) => {
+        setCurrentTopicTitle(newTitle);
+        if (isFinalized) {
+            setIsTitleFinalized(true);
+            setTitleTaskId(null);
+            updateChatInList(chatId, newTitle, true);
         }
-    }, [selectedCourse]);
+        console.log(`Title updated for chat ${chatId}: ${newTitle} (Finalized: ${isFinalized})`);
+    }, []);
 
-    const fetchChatList = async () => {
+    const updateChatInList = useCallback((chatId: string, newTitle: string, isFinalized: boolean) => {
+        setChatList(prevList =>
+            prevList.map(chat =>
+                chat.id === chatId
+                    ? {
+                        ...chat,
+                        finalTitle: isFinalized ? newTitle : chat.finalTitle,
+                        initialTitle: !isFinalized ? newTitle : chat.initialTitle,
+                        isTitleFinalized: isFinalized
+                    }
+                    : chat
+            )
+        );
+    }, []);
+
+    const fetchChatList = useCallback(async () => {
+        if (!selectedCourse) return;
         try {
             const response = await axios.get(`${API_URL}/chats/${user.id}/${selectedCourse}`);
-            setChatList(response.data.chats);
+            setChatList(response.data.chats.map((chat: any) => ({
+                ...chat,
+                initialTitle: chat.initial_title || chat.topic_title,
+                finalTitle: chat.final_title,
+                isTitleFinalized: !!chat.final_title
+            })));
         } catch (error) {
             console.error('Error fetching chat list:', error);
             toast({
@@ -61,7 +91,85 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
                 isClosable: true,
             });
         }
+    }, [selectedCourse, user.id, toast]);
+
+    useEffect(() => {
+        if (selectedCourse) {
+            fetchChatList();
+            setChatSessionId(null);
+            setChatHistory([]);
+            setCurrentTopicTitle('');
+        }
+    }, [selectedCourse, fetchChatList]);
+
+    useEffect(() => {
+        let eventSource: EventSource | null = null;
+
+        if (chatSessionId && !isTitleFinalized) {
+            eventSource = new EventSource(`${API_URL}/sse/topic/${topicId}`);
+            eventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('SSE Message:', data);
+                if (data.title && data.title !== currentTopicTitle) {
+                    updateTitle(chatSessionId, data.title, false);
+                    //fetchChatList();
+                }
+            };
+            eventSource.onerror = (error) => {
+                console.error('SSE Error:', error);
+                eventSource?.close();
+            };
+        }
+
+        return () => {
+            if (eventSource) {
+                console.log("Cerrando conexión SSE");
+                eventSource.close();
+            }
+        };
+    }, [chatSessionId, topicId, currentTopicTitle, isTitleFinalized, updateTitle]);
+
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (titleTaskId) {
+            interval = setInterval(checkTitleTaskStatus, 5000);
+        }
+        return () => clearInterval(interval);
+    }, [titleTaskId]);
+
+    const checkTitleTaskStatus = async () => {
+        if (!titleTaskId || !chatSessionId || isTitleFinalized) return;
+        try {
+            const response = await axios.get(`${API_URL}/task/${titleTaskId}`);
+            console.log('Title Task Status:', response.data);
+
+            if (response.data.state === 'SUCCESS') {
+                if (response.data.result && response.data.result.new_title) {
+                    updateTitle(chatSessionId, response.data.result.new_title, true);
+                    toast({
+                        title: 'Topic Title Finalized',
+                        description: `The topic title has been finalized: ${response.data.result.new_title}`,
+                        status: 'success',
+                        duration: 3000,
+                        isClosable: true,
+                    });
+                }
+            } else if (response.data.state === 'FAILURE') {
+                setTitleTaskId(null);
+                toast({
+                    title: 'Title Generation Failed',
+                    description: response.data.error || 'Failed to generate the topic title.',
+                    status: 'error',
+                    duration: 3000,
+                    isClosable: true,
+                });
+            }
+        } catch (error) {
+            console.error('Error checking title task status:', error);
+            setTitleTaskId(null);
+        }
     };
+
 
     const startChatSessionAndAskQuestion = async () => {
         if (!selectedCourse || !question.trim()) return;
@@ -75,6 +183,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
             });
 
             setChatSessionId(sessionResponse.data.chat_session_id);
+            updateTitle(sessionResponse.data.chat_session_id, sessionResponse.data.topic_title, false);
+            setTitleTaskId(sessionResponse.data.title_task_id);
+            setTopicId(sessionResponse.data.topic_id);
+            setIsTitleFinalized(false);
 
             const questionResponse = await axios.post(`${API_URL}/chat/question`, {
                 chat_session_id: sessionResponse.data.chat_session_id,
@@ -86,7 +198,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
                 { type: 'bot', content: questionResponse.data.response }
             ]);
 
-            await fetchChatList(); // Refresh the chat list
+            await fetchChatList();
 
             toast({
                 title: 'Chat Session Started',
@@ -144,7 +256,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
                 duration: 3000,
                 isClosable: true,
             });
-            await fetchChatList(); // Refresh the chat list
+            await fetchChatList();
         } catch (error) {
             console.error('Error ending chat session:', error);
             toast({
@@ -163,6 +275,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
         try {
             const response = await axios.get(`${API_URL}/chat/${chatId}/history`);
             setChatHistory(response.data);
+            const selectedChat = chatList.find(chat => chat.id === chatId);
+            if (selectedChat) {
+                setCurrentTopicTitle(selectedChat.finalTitle || selectedChat.initialTitle);
+                setIsTitleFinalized(!!selectedChat.finalTitle);
+            }
         } catch (error) {
             console.error('Error loading chat history:', error);
             toast({
@@ -210,7 +327,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
                             _hover={{ bg: "gray.100" }}
                             onClick={() => selectChat(chat.id)}
                         >
-                            <Text fontWeight="bold">{chat.topic_title}</Text>
+                            <Text fontWeight="bold">
+                                {chat.isTitleFinalized ? chat.finalTitle : chat.initialTitle}
+                            </Text>
                             <Text fontSize="sm" color="gray.500">
                                 Last message: {new Date(chat.timestamp).toLocaleString()}
                             </Text>
@@ -221,6 +340,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
             <Divider orientation="vertical" />
             <VStack flex={2} spacing={4} align="stretch" p={4}>
                 <Text fontSize="2xl" fontWeight="bold">Chat Interface</Text>
+                {currentTopicTitle && (
+                    <Text fontSize="xl" fontWeight="semibold">
+                        Topic: {currentTopicTitle} {!isTitleFinalized && " (Generating final title...)"}
+                    </Text>
+                )}
                 {!chatSessionId ? (
                     <VStack spacing={4}>
                         <Input
@@ -266,4 +390,5 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
             </VStack>
         </HStack>
     );
+
 };
