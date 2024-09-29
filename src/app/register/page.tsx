@@ -14,8 +14,6 @@ export default function RegisterPage() {
     }
 
     return (
-        <ChakraProvider>
-            <UserRegistration onRegistrationSuccess={handleRegistrationSuccess}/>
-        </ChakraProvider>
+        <UserRegistration onRegistrationSuccess={handleRegistrationSuccess}/>
     )
 }

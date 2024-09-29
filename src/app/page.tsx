@@ -25,6 +25,8 @@ import {CourseManagement} from "@/app/components/CourseManagement";
 import {ChatInterface} from "@/app/components/ChatInterface";
 import styles from './Home.module.css';
 import {CourseList} from "@/app/components/CourseList";
+import customTheme from "@/app/theme";
+
 
 interface User {
     id: string;
@@ -89,95 +91,95 @@ export default function Home() {
     };
 
     return (
-        <ChakraProvider>
-            <Box maxWidth="800px" margin="auto" p={5} className={styles.container}>
-                {!user ? (
-                    <Box className={`${styles.signIn} techwave_fn_sign`}>
-                        <Box className={`${styles.signContent} sign__content`}>
-                            <Box className={styles.logoContainer}>
-                                <Image
-                                    src="/images/logo-preview.png"
-                                    alt="Techwave Logo"
-                                    className={styles.logo}
+
+        <Box maxWidth="800px" margin="auto" p={5} className={styles.container}>
+            {!user ? (
+                <Box className={`${styles.signIn} techwave_fn_sign`}>
+                    <Box className={`${styles.signContent} sign__content`}>
+                        <Box className={styles.logoContainer}>
+                            <Image
+                                src="/images/logo-preview.png"
+                                alt="Techwave Logo"
+                                className={styles.logo}
+                            />
+                        </Box>
+                        <VStack spacing={4} className={`${styles.formContent} form__content`}>
+                            <Text className={`${styles.formTitle} form__title`} fontSize="2xl" fontWeight="bold">
+                                {isLogin ? 'Sign In' : 'Sign Up'}
+                            </Text>
+                            {!isLogin && (
+                                <Box className={`${styles.formName} form__name`} width="100%">
+                                    <Input
+                                        type="text"
+                                        placeholder="Enter your name"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        className={`${styles.input} form__name`}
+                                    />
+                                </Box>
+                            )}
+                            <Box className={`${styles.formEmail} form__email`} width="100%">
+                                <Input
+                                    type="email"
+                                    placeholder="Enter your email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className={`${styles.input} form__email`}
                                 />
                             </Box>
-                            <VStack spacing={4} className={`${styles.formContent} form__content`}>
-                                <Text className={`${styles.formTitle} form__title`} fontSize="2xl" fontWeight="bold">
-                                    {isLogin ? 'Sign In' : 'Sign Up'}
-                                </Text>
-                                {!isLogin && (
-                                    <Box className={`${styles.formName} form__name`} width="100%">
-                                        <Input
-                                            type="text"
-                                            placeholder="Enter your name"
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                            className={`${styles.input} form__name`}
-                                        />
-                                    </Box>
-                                )}
-                                <Box className={`${styles.formEmail} form__email`} width="100%">
-                                    <Input
-                                        type="email"
-                                        placeholder="Enter your email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        className={`${styles.input} form__email`}
-                                    />
-                                </Box>
-                                <Box className={`${styles.formPass} form__pass`} width="100%">
-                                    <Input
-                                        type="password"
-                                        placeholder="Password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className={styles.input}
-                                    />
-                                </Box>
-                                <Button onClick={handleAuth} className={`${styles.button} form__submit`} width="100%">
-                                    {isLogin ? 'Sign In' : 'Sign Up'}
+                            <Box className={`${styles.formPass} form__pass`} width="100%">
+                                <Input
+                                    type="password"
+                                    placeholder="Password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className={styles.input}
+                                />
+                            </Box>
+                            <Button onClick={handleAuth} className={`${styles.button} form__submit`} width="100%">
+                                {isLogin ? 'Sign In' : 'Sign Up'}
+                            </Button>
+                            <Box className={`${styles.formAlternative} form__alternative`} width="100%">
+                                <Flex align="center" className="fn__lined_text">
+                                    <Divider className="line" />
+                                </Flex>
+                                <Button className={`${styles.button} techwave_fn_button`} width="100%" mt={4}>
+                                    Sign in with Google
                                 </Button>
-                                <Box className={`${styles.formAlternative} form__alternative`} width="100%">
-                                    <Flex align="center" className="fn__lined_text">
-                                        <Divider className="line" />
-                                    </Flex>
-                                    <Button className={`${styles.button} techwave_fn_button`} width="100%" mt={4}>
-                                        Sign in with Google
-                                    </Button>
-                                </Box>
-                            </VStack>
-                            <Text className={`${styles.signDesc} sign__desc`} mt={4} textAlign="center">
-                                {isLogin ? (
-                                    <>Not a member? <Link onClick={toggleAuthMode} color="blue.500">Sign Up</Link></>
-                                ) : (
-                                    <>Already have an account? <Link onClick={toggleAuthMode} color="blue.500">Sign In</Link></>
-                                )}
-                            </Text>
-                        </Box>
-                    </Box>
-                ) : (
-                    <CoursesProvider user={user}>
-                        <VStack spacing={4} align="stretch">
-                            <HStack justifyContent="space-between">
-                                <Text>Welcome, {user.name}!</Text>
-                                <Button onClick={toggleCourseManagement}>
-                                    {showCourseManagement ? 'Back to Courses' : 'Manage Courses'}
-                                </Button>
-                            </HStack>
-                            {showCourseManagement ? (
-                                <CourseManagement user={user} />
-                            ) : selectedCourseId ? (
-                                <>
-                                    <Button onClick={handleBackToCourses}>Back to Courses</Button>
-                                    <ChatInterface user={user} selectedCourse={selectedCourseId}/>
-                                </>
-                            ) : (
-                                <CourseList user={user} onSelectCourse={handleSelectCourse} />
-                            )}
+                            </Box>
                         </VStack>
-                    </CoursesProvider>
-                )}
-            </Box>
-        </ChakraProvider>
+                        <Text className={`${styles.signDesc} sign__desc`} mt={4} textAlign="center">
+                            {isLogin ? (
+                                <>Not a member? <Link onClick={toggleAuthMode} color="blue.500">Sign Up</Link></>
+                            ) : (
+                                <>Already have an account? <Link onClick={toggleAuthMode} color="blue.500">Sign In</Link></>
+                            )}
+                        </Text>
+                    </Box>
+                </Box>
+            ) : (
+                <CoursesProvider user={user}>
+                    <VStack spacing={4} align="stretch">
+                        <HStack justifyContent="space-between">
+                            <Text>Welcome, {user.name}!</Text>
+                            <Button onClick={toggleCourseManagement}>
+                                {showCourseManagement ? 'Back to Courses' : 'Manage Courses'}
+                            </Button>
+                        </HStack>
+                        {showCourseManagement ? (
+                            <CourseManagement user={user} />
+                        ) : selectedCourseId ? (
+                            <>
+                                <Button onClick={handleBackToCourses}>Back to Courses</Button>
+                                <ChatInterface user={user} selectedCourse={selectedCourseId}/>
+                            </>
+                        ) : (
+                            <CourseList user={user} onSelectCourse={handleSelectCourse} />
+                        )}
+                    </VStack>
+                </CoursesProvider>
+            )}
+        </Box>
+
     );
 }

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     VStack,
@@ -17,7 +19,6 @@ interface User {
     id: string;
     name: string;
 }
-
 interface Document {
     id: string;
     file_name: string;
@@ -277,8 +278,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, selectedCour
 
     return (
         <Flex direction="column" height="100vh">
-            <HStack p={4} bg="gray.800" color="white" justifyContent="space-between">
-                <Heading size="md">{selectedCourseName}</Heading>
+            <HStack p={4} bg="gray.700" color="white" justifyContent="space-between">
+                <Heading size="md" color="white">{selectedCourseName}</Heading>
                 <Button onClick={() => {/* Función para volver a la lista de cursos */}}>
                     Back to Courses
                 </Button>
