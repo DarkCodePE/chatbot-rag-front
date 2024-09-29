@@ -1,0 +1,28 @@
+.chatContent {
+    background-color: var(--techwave-some-r-bg-color);
+    border-color: var(--techwave-border-color);
+}
+
+.chatBox {
+    font-family: var(--techwave-body-font-family);
+}
+
+.yourChat {
+    background-color: var(--techwave-some-a-bg-color);
+    color: var(--techwave-heading-color);
+}
+
+.botChat {
+    background-color: var(--techwave-some-r-bg-color);
+    border: 1px solid var(--techwave-border-color);
+}
+
+.chatInput textarea {
+    border: 2px solid var(--techwave-border-color);
+    background-color: transparent;
+    color: var(--techwave-heading-color);
+}
+
+.chatInput textarea:focus {
+    border-color: var(--techwave-main-color);
+}

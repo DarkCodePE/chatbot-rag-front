@@ -1,0 +1,112 @@
+.container {
+    background-color: var(--techwave-site-bg-color);
+    color: var(--techwave-body-color);
+    font-family: var(--techwave-body-font-family);
+}
+
+.signIn {
+    background-color: var(--techwave-some-r-bg-color);
+    border: 1px solid var(--techwave-border-color);
+    border-radius: 5px;
+    padding: 40px;
+}
+
+.formContent {
+    width: 100%;
+}
+
+.inputLabel {
+    color: var(--techwave-heading-color);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.input {
+    background-color: var(--techwave-some-a-bg-color);
+    color: var(--techwave-heading-color);
+    border: 2px solid var(--techwave-border-color);
+    border-radius: 5px;
+    padding: 10px 15px;
+    font-size: 16px;
+    width: 100%;
+}
+
+.input:focus {
+    border-color: var(--techwave-main-color);
+    box-shadow: 0 0 0 1px var(--techwave-main-color);
+}
+
+.forgotPassword {
+    font-size: 14px;
+    color: var(--techwave-main-color);
+    text-decoration: none;
+}
+
+.forgotPassword:hover {
+    text-decoration: underline;
+}
+
+.button {
+    background-color: var(--techwave-main-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+}
+
+.button:hover {
+    opacity: 0.8;
+}
+
+.formTitle {
+    color: var(--techwave-heading-color);
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.formAlternative {
+    margin-top: 20px;
+}
+
+.signDesc {
+    color: var(--techwave-body-color);
+    font-size: 14px;
+    margin-top: 20px;
+}
+
+.logo {
+    color: var(--techwave-heading-color);
+    font-size: 18px;
+    font-weight: bold;
+    /*margin-bottom: 30px;*/
+}
+
+/* Estilos para las pestañas (si se mantienen después del inicio de sesión) */
+.tabs {
+    border-color: var(--techwave-border-color);
+}
+
+.tab {
+    color: var(--techwave-heading-color);
+}
+
+.tab:hover, .tab[aria-selected="true"] {
+    color: var(--techwave-main-color);
+    border-color: var(--techwave-main-color);
+}
+
+.logoContainer {
+    text-align: center;
+    display: flex;
+    justify-content: center;
+}
+
+.logo {
+    max-width: 140px; /* Ajusta este valor según el tamaño deseado de tu logo */
+    height: auto;
+}

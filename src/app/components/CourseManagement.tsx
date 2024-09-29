@@ -14,7 +14,7 @@ import {
     Tbody,
     Tr,
     Th,
-    Td,
+    Td, List, ListItem, FormControl, FormLabel,
 } from '@chakra-ui/react';
 import axios from 'axios';
 import {useCourses} from "@/app/hook/CoursesProvider";
@@ -30,6 +30,15 @@ interface User {
     name: string;
 }
 
+interface ProcessedDocument {
+    id: string;
+    course_id: string;
+    google_file_id: string;
+    file_name: string;
+    last_modified: string;
+    qdrant_point_id: string;
+}
+
 interface CourseManagementProps {
     user: User;
 }
@@ -40,12 +49,20 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
     const [courses, setCourses] = useState<Course[]>([]);
     const [newCourseName, setNewCourseName] = useState('');
     const [selectedCourse, setSelectedCourse] = useState('');
+    const [courseFiles, setCourseFiles] = useState<ProcessedDocument[]>([]);
+    const [fileToUpload, setFileToUpload] = useState<File | null>(null);
     const { userCourses, fetchUserCourses } = useCourses();
     const toast = useToast();
 
     useEffect(() => {
         fetchAllCourses();
     }, []);
+
+    useEffect(() => {
+        if (selectedCourse) {
+            fetchCourseFiles(selectedCourse);
+        }
+    }, [selectedCourse]);
 
     const fetchAllCourses = async () => {
         try {
@@ -135,6 +152,73 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
         }
     };
 
+    const fetchCourseFiles = async (courseId: string) => {
+        try {
+            const response = await axios.get<ProcessedDocument[]>(`${API_URL}/courses/${courseId}/files`);
+            setCourseFiles(response.data);
+        } catch (error) {
+            console.error('Error fetching course files:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to fetch course files',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+            });
+        }
+    };
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            setFileToUpload(file);
+        }
+    };
+
+    const uploadFile = async () => {
+        if (!selectedCourse || !fileToUpload) {
+            toast({
+                title: 'Error',
+                description: 'Please select a course and a file to upload',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+            });
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('course_id', selectedCourse);
+        formData.append('file', fileToUpload);
+
+        try {
+            await axios.post(`${API_URL}/upload-document`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            toast({
+                title: 'File Uploaded',
+                description: 'The file has been uploaded successfully.',
+                status: 'success',
+                duration: 3000,
+                isClosable: true,
+            });
+            fetchCourseFiles(selectedCourse);
+            setFileToUpload(null);
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to upload file',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+            });
+        }
+    };
+
     return (
         <VStack spacing={6} align="stretch">
             <Box>
@@ -169,6 +253,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
                     <Button colorScheme="green" onClick={handleAssignCourse}>Assign Course</Button>
                 </HStack>
             </Box>
+
             <Box>
                 <Heading size="md" mb={2}>Your Assigned Courses</Heading>
                 <Table variant="simple">
@@ -186,6 +271,26 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
                     </Tbody>
                 </Table>
             </Box>
+
+            {selectedCourse && (
+                <Box>
+                    <Heading size="md" mb={2}>Course Files</Heading>
+                    <List spacing={3}>
+                        {courseFiles.map((file) => (
+                            <ListItem key={file.id}>
+                                {file.file_name} (Last modified: {new Date(file.last_modified).toLocaleString()})
+                            </ListItem>
+                        ))}
+                    </List>
+                    <FormControl mt={4}>
+                        <FormLabel>Upload New File</FormLabel>
+                        <Input type="file" onChange={handleFileUpload} />
+                    </FormControl>
+                    <Button mt={2} colorScheme="blue" onClick={uploadFile} isDisabled={!fileToUpload}>
+                        Upload File
+                    </Button>
+                </Box>
+            )}
         </VStack>
     );
 };
