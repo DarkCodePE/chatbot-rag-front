@@ -17,13 +17,14 @@ import {
     Flex,
     Link,
     Divider,
-    Image,
+    Image, HStack,
 } from '@chakra-ui/react';
 import axios from 'axios';
 import {CoursesProvider} from "@/app/hook/CoursesProvider";
 import {CourseManagement} from "@/app/components/CourseManagement";
 import {ChatInterface} from "@/app/components/ChatInterface";
 import styles from './Home.module.css';
+import {CourseList} from "@/app/components/CourseList";
 
 interface User {
     id: string;
@@ -39,6 +40,8 @@ export default function Home() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
+    const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+    const [showCourseManagement, setShowCourseManagement] = useState(false);
     const toast = useToast();
 
     const handleAuth = async () => {
@@ -72,6 +75,17 @@ export default function Home() {
         setEmail('');
         setPassword('');
         setName('');
+    };
+    const handleSelectCourse = (courseId: string) => {
+        setSelectedCourseId(courseId);
+    };
+
+    const handleBackToCourses = () => {
+        setSelectedCourseId(null);
+    };
+
+    const toggleCourseManagement = () => {
+        setShowCourseManagement(!showCourseManagement);
     };
 
     return (
@@ -143,20 +157,24 @@ export default function Home() {
                     </Box>
                 ) : (
                     <CoursesProvider user={user}>
-                        <Tabs className={styles.tabs}>
-                            <TabList>
-                                <Tab className={styles.tab}>Course Management</Tab>
-                                <Tab className={styles.tab}>Chat</Tab>
-                            </TabList>
-                            <TabPanels>
-                                <TabPanel>
-                                    <CourseManagement user={user} />
-                                </TabPanel>
-                                <TabPanel>
-                                    <ChatInterface user={user} />
-                                </TabPanel>
-                            </TabPanels>
-                        </Tabs>
+                        <VStack spacing={4} align="stretch">
+                            <HStack justifyContent="space-between">
+                                <Text>Welcome, {user.name}!</Text>
+                                <Button onClick={toggleCourseManagement}>
+                                    {showCourseManagement ? 'Back to Courses' : 'Manage Courses'}
+                                </Button>
+                            </HStack>
+                            {showCourseManagement ? (
+                                <CourseManagement user={user} />
+                            ) : selectedCourseId ? (
+                                <>
+                                    <Button onClick={handleBackToCourses}>Back to Courses</Button>
+                                    <ChatInterface user={user} selectedCourse={selectedCourseId}/>
+                                </>
+                            ) : (
+                                <CourseList user={user} onSelectCourse={handleSelectCourse} />
+                            )}
+                        </VStack>
                     </CoursesProvider>
                 )}
             </Box>

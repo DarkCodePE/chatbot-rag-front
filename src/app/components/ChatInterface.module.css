@@ -1,28 +1,149 @@
-.chatContent {
-    background-color: var(--techwave-some-r-bg-color);
-    border-color: var(--techwave-border-color);
-}
-
-.chatBox {
+.chatInterface {
+    background-color: var(--techwave-site-bg-color);
+    color: var(--techwave-body-color);
     font-family: var(--techwave-body-font-family);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
-.yourChat {
+.header {
+    background-color: var(--techwave-header-bg-color);
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.courseTitle {
+    color: var(--techwave-heading-color);
+    font-family: var(--techwave-heading-font-family);
+    font-size: 1.5rem;
+}
+
+.backButton {
+    background-color: var(--techwave-button-bg-color);
+    color: var(--techwave-heading-color);
+    border: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-family: var(--techwave-heading-font-family);
+}
+
+.content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.chatList, .documents {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.inputField {
+    width: 100%;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--techwave-border-color);
     background-color: var(--techwave-some-a-bg-color);
     color: var(--techwave-heading-color);
 }
 
-.botChat {
-    background-color: var(--techwave-some-r-bg-color);
-    border: 1px solid var(--techwave-border-color);
-}
-
-.chatInput textarea {
-    border: 2px solid var(--techwave-border-color);
-    background-color: transparent;
+.sectionTitle {
     color: var(--techwave-heading-color);
+    font-family: var(--techwave-heading-font-family);
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
 }
 
-.chatInput textarea:focus {
-    border-color: var(--techwave-main-color);
+.chatItems, .documentList {
+    list-style-type: none;
+    padding: 0;
+}
+
+.chatItem, .documentItem {
+    background-color: var(--techwave-some-r-bg-color);
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.chatTitle, .documentTitle {
+    display: block;
+    color: var(--techwave-heading-color);
+    font-weight: bold;
+}
+
+.chatTimestamp, .documentTimestamp {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--techwave-body-color);
+}
+
+.chatSession {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--techwave-site-bg-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.chatSessionHeader {
+    background-color: var(--techwave-header-bg-color);
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.chatSessionTitle {
+    color: var(--techwave-heading-color);
+    font-family: var(--techwave-heading-font-family);
+    font-size: 1.2rem;
+    margin-left: 1rem;
+}
+
+.chatHistory {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.message {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.userMessage {
+    background-color: var(--techwave-main-color);
+    color: white;
+    align-self: flex-end;
+}
+
+.botMessage {
+    background-color: var(--techwave-some-r-bg-color);
+    color: var(--techwave-body-color);
+    align-self: flex-start;
+}
+
+.chatInput {
+    display: flex;
+    padding: 1rem;
+    background-color: var(--techwave-header-bg-color);
+}
+
+.sendButton {
+    background-color: var(--techwave-main-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-family: var(--techwave-heading-font-family);
+    margin-left: 0.5rem;
 }

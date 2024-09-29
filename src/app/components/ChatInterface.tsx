@@ -7,14 +7,21 @@ import {
     Input,
     Button,
     Select,
-    useToast, List, ListItem, Divider,
+    useToast, List, ListItem, Divider, Flex, Heading, IconButton,
 } from '@chakra-ui/react';
 import axios from 'axios';
 import { useCourses } from "@/app/hook/CoursesProvider";
+import { ChevronLeftIcon } from '@chakra-ui/icons';
 
 interface User {
     id: string;
     name: string;
+}
+
+interface Document {
+    id: string;
+    file_name: string;
+    last_modified: string;
 }
 
 interface ChatListItem {
@@ -25,16 +32,21 @@ interface ChatListItem {
     isTitleFinalized: boolean;
 }
 
+interface Course {
+    id: string;
+    name: string;
+}
+
 interface ChatInterfaceProps {
     user: User;
+    selectedCourse: string; // Add this line
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL_PROD || 'https://orlandokuan.org';
 
 
-export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
+export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, selectedCourse }) => {
     const { userCourses } = useCourses();
-    const [selectedCourse, setSelectedCourse] = useState<string>('');
     const [question, setQuestion] = useState('');
     const [chatHistory, setChatHistory] = useState<{type: string, content: string}[]>([]);
     const [chatSessionId, setChatSessionId] = useState<string | null>(null);
@@ -44,6 +56,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
     const [currentTopicTitle, setCurrentTopicTitle] = useState<string>('');
     const [titleTaskId, setTitleTaskId] = useState<string | null>(null);
     const [isTitleFinalized, setIsTitleFinalized] = useState(false);
+    const [documents, setDocuments] = useState<Document[]>([]);
+    const [showChatList, setShowChatList] = useState(true);
     const toast = useToast();
 
     const updateTitle = useCallback((chatId: string, newTitle: string, isFinalized: boolean) => {
@@ -93,14 +107,78 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
         }
     }, [selectedCourse, user.id, toast]);
 
+
+    const fetchDocuments = useCallback(async () => {
+        if (!selectedCourse) return;
+        try {
+            const response = await axios.get(`${API_URL}/courses/${selectedCourse}/files`);
+            setDocuments(response.data);
+        } catch (error) {
+            console.error('Error fetching documents:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to fetch course documents',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+            });
+        }
+    }, [selectedCourse, toast]);
+
+    const handleStartNewChat = async () => {
+        if (!selectedCourse || !question.trim()) return;
+        setIsLoading(true);
+        try {
+            const response = await axios.post(`${API_URL}/chat/start`, {
+                user_id: user.id,
+                course_id: selectedCourse,
+                initial_question: question
+            });
+            setChatSessionId(response.data.chat_session_id);
+            setCurrentTopicTitle(response.data.topic_title);
+            setChatHistory([{ type: 'user', content: question }]);
+            setShowChatList(false);
+            // Proceed with asking the initial question...
+        } catch (error) {
+            console.error('Error starting new chat:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to start new chat',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+            });
+        }
+        setIsLoading(false);
+        setQuestion('');
+    };
+
+    const handleSubmitQuestion = async () => {
+        if (!question.trim() || !chatSessionId) return;
+        setIsLoading(true);
+        setChatHistory(prev => [...prev, { type: 'user', content: question }]);
+
+        try {
+            const response = await axios.post(`${API_URL}/chat/question`, {
+                chat_session_id: chatSessionId,
+                text: question
+            });
+            setChatHistory(prev => [...prev, { type: 'bot', content: response.data.response }]);
+        } catch (error) {
+            console.error('Error:', error);
+            setChatHistory(prev => [...prev, { type: 'error', content: 'An error occurred. Please try again.' }]);
+        }
+
+        setIsLoading(false);
+        setQuestion('');
+    };
+
     useEffect(() => {
         if (selectedCourse) {
             fetchChatList();
-            setChatSessionId(null);
-            setChatHistory([]);
-            setCurrentTopicTitle('');
+            fetchDocuments();
         }
-    }, [selectedCourse, fetchChatList]);
+    }, [selectedCourse, fetchChatList, fetchDocuments]);
 
     useEffect(() => {
         let eventSource: EventSource | null = null;
@@ -171,104 +249,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
     };
 
 
-    const startChatSessionAndAskQuestion = async () => {
-        if (!selectedCourse || !question.trim()) return;
-        setIsLoading(true);
-
-        try {
-            const sessionResponse = await axios.post(`${API_URL}/chat/start`, {
-                user_id: user.id,
-                course_id: selectedCourse,
-                initial_question: question
-            });
-
-            setChatSessionId(sessionResponse.data.chat_session_id);
-            updateTitle(sessionResponse.data.chat_session_id, sessionResponse.data.topic_title, false);
-            setTitleTaskId(sessionResponse.data.title_task_id);
-            setTopicId(sessionResponse.data.topic_id);
-            setIsTitleFinalized(false);
-
-            const questionResponse = await axios.post(`${API_URL}/chat/question`, {
-                chat_session_id: sessionResponse.data.chat_session_id,
-                text: question
-            });
-
-            setChatHistory([
-                { type: 'user', content: question },
-                { type: 'bot', content: questionResponse.data.response }
-            ]);
-
-            await fetchChatList();
-
-            toast({
-                title: 'Chat Session Started',
-                description: 'Your question has been submitted and a new topic created.',
-                status: 'success',
-                duration: 3000,
-                isClosable: true,
-            });
-        } catch (error) {
-            console.error('Error starting chat session or asking question:', error);
-            toast({
-                title: 'Error',
-                description: 'Failed to start chat session or ask question',
-                status: 'error',
-                duration: 3000,
-                isClosable: true,
-            });
-        }
-
-        setIsLoading(false);
-        setQuestion('');
-    };
-
-    const handleSubmitQuestion = async () => {
-        if (!question.trim() || !chatSessionId) return;
-        setIsLoading(true);
-        setChatHistory(prev => [...prev, { type: 'user', content: question }]);
-
-        try {
-            const response = await axios.post(`${API_URL}/chat/question`, {
-                chat_session_id: chatSessionId,
-                text: question
-            });
-
-            setChatHistory(prev => [...prev, { type: 'bot', content: response.data.response }]);
-        } catch (error) {
-            console.error('Error:', error);
-            setChatHistory(prev => [...prev, { type: 'error', content: 'An error occurred. Please try again.' }]);
-        }
-
-        setIsLoading(false);
-        setQuestion('');
-    };
-
-    const endChatSession = async () => {
-        if (!chatSessionId) return;
-        try {
-            await axios.post(`${API_URL}/chat/end`, { chat_session_id: chatSessionId });
-            setChatSessionId(null);
-            setChatHistory([]);
-            toast({
-                title: 'Chat Session Ended',
-                description: 'Your chat session has been ended.',
-                status: 'info',
-                duration: 3000,
-                isClosable: true,
-            });
-            await fetchChatList();
-        } catch (error) {
-            console.error('Error ending chat session:', error);
-            toast({
-                title: 'Error',
-                description: 'Failed to end chat session',
-                status: 'error',
-                duration: 3000,
-                isClosable: true,
-            });
-        }
-    };
-
     const selectChat = async (chatId: string) => {
         setChatSessionId(chatId);
         setIsLoading(true);
@@ -278,8 +258,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
             const selectedChat = chatList.find(chat => chat.id === chatId);
             if (selectedChat) {
                 setCurrentTopicTitle(selectedChat.finalTitle || selectedChat.initialTitle);
-                setIsTitleFinalized(!!selectedChat.finalTitle);
             }
+            setShowChatList(false);
         } catch (error) {
             console.error('Error loading chat history:', error);
             toast({
@@ -293,102 +273,121 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user }) => {
         }
         setIsLoading(false);
     };
-
-    const handleCourseChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedCourse(e.target.value);
-        setChatSessionId(null);
-        setChatHistory([]);
-    };
+    const selectedCourseName = userCourses.find(course => course.id === selectedCourse)?.name || 'Selected Course';
 
     return (
-        <HStack spacing={4} align="stretch" height="100vh">
-            <VStack flex={1} spacing={4} align="stretch" p={4} bg="gray.50" overflowY="auto">
-                <Text fontSize="2xl" fontWeight="bold">Chat List</Text>
-                <Select
-                    placeholder="Select a course"
-                    value={selectedCourse}
-                    onChange={handleCourseChange}
-                >
-                    {userCourses.map((course) => (
-                        <option key={course.id} value={course.id}>
-                            {course.name}
-                        </option>
-                    ))}
-                </Select>
-                <List spacing={3}>
-                    {chatList.map((chat) => (
-                        <ListItem
-                            key={chat.id}
-                            p={3}
-                            bg="white"
-                            borderRadius="md"
-                            boxShadow="sm"
-                            cursor="pointer"
-                            _hover={{ bg: "gray.100" }}
-                            onClick={() => selectChat(chat.id)}
-                        >
-                            <Text fontWeight="bold">
-                                {chat.isTitleFinalized ? chat.finalTitle : chat.initialTitle}
-                            </Text>
-                            <Text fontSize="sm" color="gray.500">
-                                Last message: {new Date(chat.timestamp).toLocaleString()}
-                            </Text>
-                        </ListItem>
-                    ))}
-                </List>
-            </VStack>
-            <Divider orientation="vertical" />
-            <VStack flex={2} spacing={4} align="stretch" p={4}>
-                <Text fontSize="2xl" fontWeight="bold">Chat Interface</Text>
-                {currentTopicTitle && (
-                    <Text fontSize="xl" fontWeight="semibold">
-                        Topic: {currentTopicTitle} {!isTitleFinalized && " (Generating final title...)"}
-                    </Text>
-                )}
-                {!chatSessionId ? (
-                    <VStack spacing={4}>
+        <Flex direction="column" height="100vh">
+            <HStack p={4} bg="gray.800" color="white" justifyContent="space-between">
+                <Heading size="md">{selectedCourseName}</Heading>
+                <Button onClick={() => {/* Función para volver a la lista de cursos */}}>
+                    Back to Courses
+                </Button>
+            </HStack>
+            <Flex flex={1}>
+                <VStack flex={1} spacing={4} align="stretch" p={4} overflowY="auto">
+                    <Input
+                        value={question}
+                        onChange={(e) => setQuestion(e.target.value)}
+                        placeholder="How can Claude help you today?"
+                        onKeyPress={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleStartNewChat();
+                            }
+                        }}
+                    />
+                    <Heading size="sm">Your chats</Heading>
+                    <List spacing={3}>
+                        {chatList.map((chat) => (
+                            <ListItem
+                                key={chat.id}
+                                p={2}
+                                bg="gray.700"
+                                borderRadius="md"
+                                cursor="pointer"
+                                _hover={{ bg: "gray.600" }}
+                                onClick={() => selectChat(chat.id)}
+                            >
+                                <Text fontWeight="bold" color="white">
+                                    {chat.isTitleFinalized ? chat.finalTitle : chat.initialTitle}
+                                </Text>
+                                <Text fontSize="xs" color="gray.300">
+                                    Last message: {new Date(chat.timestamp).toLocaleString()}
+                                </Text>
+                            </ListItem>
+                        ))}
+                    </List>
+                </VStack>
+                <VStack width="300px" spacing={4} align="stretch" p={4} bg="gray.700" overflowY="auto">
+                    <Heading size="sm" color="white">Course Documents</Heading>
+                    <List spacing={3}>
+                        {documents.map((doc) => (
+                            <ListItem
+                                key={doc.id}
+                                p={2}
+                                bg="gray.600"
+                                borderRadius="md"
+                            >
+                                <Text fontWeight="bold" fontSize="sm" color="white">{doc.file_name}</Text>
+                                <Text fontSize="xs" color="gray.300">
+                                    Last modified: {new Date(doc.last_modified).toLocaleString()}
+                                </Text>
+                            </ListItem>
+                        ))}
+                    </List>
+                </VStack>
+            </Flex>
+            {chatSessionId && (
+                <Flex direction="column" position="absolute" top={0} left={0} right={0} bottom={0} bg="white">
+                    <HStack p={4} bg="gray.800" color="white">
+                        <IconButton
+                            aria-label="Back to chat list"
+                            icon={<ChevronLeftIcon />}
+                            onClick={() => setChatSessionId(null)}
+                            variant="ghost"
+                        />
+                        <Heading size="md">{currentTopicTitle}</Heading>
+                    </HStack>
+                    <VStack flex={1} spacing={4} align="stretch" p={4} overflowY="auto">
+                        {chatHistory.map((message, index) => (
+                            <Box
+                                key={index}
+                                alignSelf={message.type === 'user' ? 'flex-end' : 'flex-start'}
+                                bg={message.type === 'user' ? 'blue.500' : 'gray.600'}
+                                color="white"
+                                p={2}
+                                borderRadius="md"
+                                maxWidth="70%"
+                            >
+                                <Text>{message.content}</Text>
+                            </Box>
+                        ))}
+                    </VStack>
+                    <HStack p={4} bg="gray.800">
                         <Input
                             value={question}
                             onChange={(e) => setQuestion(e.target.value)}
-                            placeholder="Type your initial question here..."
+                            placeholder="Type your message here..."
+                            color="white"
+                            bg="gray.700"
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSubmitQuestion();
+                                }
+                            }}
                         />
                         <Button
-                            onClick={startChatSessionAndAskQuestion}
+                            onClick={handleSubmitQuestion}
                             isLoading={isLoading}
-                            isDisabled={!selectedCourse || !question.trim()}
                             colorScheme="blue"
                         >
-                            Start New Chat
+                            Send
                         </Button>
-                    </VStack>
-                ) : (
-                    <>
-                        <Box flex={1} bg="white" p={4} borderRadius="md" overflowY="auto" mb={4}>
-                            {chatHistory.map((message, index) => (
-                                <Box
-                                    key={index}
-                                    bg={message.type === 'user' ? 'blue.100' : message.type === 'bot' ? 'green.100' : 'red.100'}
-                                    p={2}
-                                    borderRadius="md"
-                                    mb={2}
-                                >
-                                    <Text>{message.content}</Text>
-                                </Box>
-                            ))}
-                        </Box>
-                        <HStack>
-                            <Input
-                                value={question}
-                                onChange={(e) => setQuestion(e.target.value)}
-                                placeholder="Type your question here..."
-                            />
-                            <Button onClick={handleSubmitQuestion} isLoading={isLoading} colorScheme="blue">Send</Button>
-                        </HStack>
-                        <Button onClick={endChatSession} colorScheme="red">End Chat</Button>
-                    </>
-                )}
-            </VStack>
-        </HStack>
+                    </HStack>
+                </Flex>
+            )}
+        </Flex>
     );
 
 };
