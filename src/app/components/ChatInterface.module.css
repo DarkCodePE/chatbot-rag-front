@@ -8,7 +8,7 @@
 }
 
 .header {
-    background-color: var(--techwave-header-bg-color);
+    background-color: var(--techwave-site-bg-color);
     padding: 1rem;
     display: flex;
     justify-content: space-between;
@@ -130,6 +130,7 @@
     background-color: var(--techwave-some-r-bg-color);
     color: var(--techwave-body-color);
     align-self: flex-start;
+    border-radius: 5px;
 }
 
 .chatInput {

@@ -14,6 +14,7 @@ import {
 import axios from 'axios';
 import { useCourses } from "@/app/hook/CoursesProvider";
 import { ChevronLeftIcon } from '@chakra-ui/icons';
+import styles from './ChatInterface.module.css';
 
 interface User {
     id: string;
@@ -277,15 +278,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, selectedCour
     const selectedCourseName = userCourses.find(course => course.id === selectedCourse)?.name || 'Selected Course';
 
     return (
-        <Flex direction="column" height="100vh">
-            <HStack p={4} bg="gray.700" color="white" justifyContent="space-between">
-                <Heading size="md" color="white">{selectedCourseName}</Heading>
-                <Button onClick={() => {/* Función para volver a la lista de cursos */}}>
-                    Back to Courses
-                </Button>
+        <Flex direction="column" height="100vh" className={styles.chatInterface}>
+            <HStack p={4} className={styles.header}>
+                <Heading size="md" className={styles.courseTitle}>{selectedCourseName}</Heading>
             </HStack>
-            <Flex flex={1}>
-                <VStack flex={1} spacing={4} align="stretch" p={4} overflowY="auto">
+            <Flex flex={1} className={styles.content}>
+                <VStack flex={1} spacing={4} align="stretch" p={4} overflowY="auto" className={styles.chatList}>
                     <Input
                         value={question}
                         onChange={(e) => setQuestion(e.target.value)}
@@ -296,23 +294,21 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, selectedCour
                                 handleStartNewChat();
                             }
                         }}
+                        className={styles.inputField}
                     />
-                    <Heading size="sm">Your chats</Heading>
-                    <List spacing={3}>
+                    <Heading size="sm" className={styles.sectionTitle}>Your chats</Heading>
+                    <List spacing={3} className={styles.chatItems}>
                         {chatList.map((chat) => (
                             <ListItem
                                 key={chat.id}
                                 p={2}
-                                bg="gray.700"
-                                borderRadius="md"
-                                cursor="pointer"
-                                _hover={{ bg: "gray.600" }}
+                                className={styles.userMessage}
                                 onClick={() => selectChat(chat.id)}
                             >
-                                <Text fontWeight="bold" color="white">
+                                <Text fontWeight="bold" color="white" className={styles.chatTitle}>
                                     {chat.isTitleFinalized ? chat.finalTitle : chat.initialTitle}
                                 </Text>
-                                <Text fontSize="xs" color="gray.300">
+                                <Text fontSize="xs" color="white" className={styles.chatTimestamp}>
                                     Last message: {new Date(chat.timestamp).toLocaleString()}
                                 </Text>
                             </ListItem>
