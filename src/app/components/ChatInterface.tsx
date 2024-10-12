@@ -13,7 +13,7 @@ import {
 } from '@chakra-ui/react';
 import axios from 'axios';
 import { useCourses } from "@/app/hook/CoursesProvider";
-import { ChevronLeftIcon } from '@chakra-ui/icons';
+import {ArrowLeftIcon, ArrowRightIcon, ChevronLeftIcon} from '@chakra-ui/icons';
 import styles from './ChatInterface.module.css';
 
 interface User {
@@ -60,6 +60,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, selectedCour
     const [isTitleFinalized, setIsTitleFinalized] = useState(false);
     const [documents, setDocuments] = useState<Document[]>([]);
     const [showChatList, setShowChatList] = useState(true);
+    const chatHistoryRef = React.useRef<HTMLDivElement>(null);
     const toast = useToast();
 
     const updateTitle = useCallback((chatId: string, newTitle: string, isFinalized: boolean) => {
@@ -136,11 +137,21 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, selectedCour
                 course_id: selectedCourse,
                 initial_question: question
             });
+
             setChatSessionId(response.data.chat_session_id);
+            setTopicId(response.data.topic_id); // Establecer topicId desde la respuesta
             setCurrentTopicTitle(response.data.topic_title);
-            setChatHistory([{ type: 'user', content: question }]);
+            setChatHistory([
+                { type: 'user', content: question },
+                { type: 'bot', content: response.data.initial_answer?.response || 'No response available.' } // Añadir la respuesta inicial al historial
+            ]);
             setShowChatList(false);
-            // Proceed with asking the initial question...
+
+            // Si necesitas utilizar title_task_id para verificar el estado de generación del título
+            if (response.data.title_task_id) {
+                setTitleTaskId(response.data.title_task_id);
+            }
+
         } catch (error) {
             console.error('Error starting new chat:', error);
             toast({
@@ -185,14 +196,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, selectedCour
     useEffect(() => {
         let eventSource: EventSource | null = null;
 
-        if (chatSessionId && !isTitleFinalized) {
+        if (chatSessionId && topicId && !isTitleFinalized) { // Asegúrate de que topicId está disponible
             eventSource = new EventSource(`${API_URL}/sse/topic/${topicId}`);
             eventSource.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 console.log('SSE Message:', data);
                 if (data.title && data.title !== currentTopicTitle) {
                     updateTitle(chatSessionId, data.title, false);
-                    //fetchChatList();
+                    // Opcionalmente, puedes actualizar la lista de chats
+                    // fetchChatList();
                 }
             };
             eventSource.onerror = (error) => {
@@ -250,13 +262,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, selectedCour
         }
     };
 
+    useEffect(() => {
+        if (chatHistoryRef.current) {
+            chatHistoryRef.current.scrollTop = chatHistoryRef.current.scrollHeight;
+        }
+    }, [chatHistory]);
 
     const selectChat = async (chatId: string) => {
         setChatSessionId(chatId);
         setIsLoading(true);
         try {
             const response = await axios.get(`${API_URL}/chat/${chatId}/history`);
-            setChatHistory(response.data);
+            setChatHistory(response.data); // Ajusta esto según la estructura de tu backend
+            setTopicId(response.data.topic_id); // Establecer topicId desde la respuesta
             const selectedChat = chatList.find(chat => chat.id === chatId);
             if (selectedChat) {
                 setCurrentTopicTitle(selectedChat.finalTitle || selectedChat.initialTitle);
@@ -275,10 +293,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, selectedCour
         }
         setIsLoading(false);
     };
+
     const selectedCourseName = userCourses.find(course => course.id === selectedCourse)?.name || 'Selected Course';
 
     return (
-        <Flex direction="column" height="100vh" className={styles.chatInterface}>
+        <div className={styles.chatInterface}>
             <HStack p={4} className={styles.header}>
                 <Heading size="md" className={styles.courseTitle}>{selectedCourseName}</Heading>
             </HStack>
@@ -335,56 +354,58 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, selectedCour
                 </VStack>
             </Flex>
             {chatSessionId && (
-                <Flex direction="column" position="absolute" top={0} left={0} right={0} bottom={0} bg="white">
-                    <HStack p={4} bg="gray.800" color="white">
-                        <IconButton
+                <div className={styles.chatSession}>
+                    <div className={styles.chatSessionHeader}>
+                        <button
                             aria-label="Back to chat list"
-                            icon={<ChevronLeftIcon />}
                             onClick={() => setChatSessionId(null)}
-                            variant="ghost"
-                        />
-                        <Heading size="md">{currentTopicTitle}</Heading>
-                    </HStack>
-                    <VStack flex={1} spacing={4} align="stretch" p={4} overflowY="auto">
-                        {chatHistory.map((message, index) => (
-                            <Box
+                            className={styles.backButton}
+                        >
+                            <ChevronLeftIcon/>
+                        </button>
+                        <h2 className={styles.chatSessionTitle}>{currentTopicTitle}</h2>
+                    </div>
+                    <div className={styles.chatHistory}  ref={chatHistoryRef}>
+                        {chatHistory?.map((message, index) => (
+                            <div
                                 key={index}
-                                alignSelf={message.type === 'user' ? 'flex-end' : 'flex-start'}
-                                bg={message.type === 'user' ? 'blue.500' : 'gray.600'}
-                                color="white"
-                                p={2}
-                                borderRadius="md"
-                                maxWidth="70%"
+                                className={`${styles.message} ${
+                                    message.type === 'user' ? styles.userMessage : styles.botMessage
+                                }`}
                             >
-                                <Text>{message.content}</Text>
-                            </Box>
+                                <div className="author">
+                                    <span>{message.type === 'user' ? 'You' : 'Bot'}</span>
+                                </div>
+                                <div className="chat">
+                                    <p>{message.content}</p>
+                                </div>
+                            </div>
                         ))}
-                    </VStack>
-                    <HStack p={4} bg="gray.800">
-                        <Input
+                    </div>
+                    <div className={styles.chatInput}>
+                        <input
                             value={question}
                             onChange={(e) => setQuestion(e.target.value)}
                             placeholder="Type your message here..."
-                            color="white"
-                            bg="gray.700"
                             onKeyPress={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
                                     handleSubmitQuestion();
                                 }
                             }}
+                            className={styles.inputField}
                         />
-                        <Button
+                        <button
                             onClick={handleSubmitQuestion}
-                            isLoading={isLoading}
-                            colorScheme="blue"
+                            disabled={isLoading}
+                            className={styles.sendButton}
                         >
-                            Send
-                        </Button>
-                    </HStack>
-                </Flex>
+                            <ArrowRightIcon/>
+                        </button>
+                    </div>
+                </div>
             )}
-        </Flex>
+        </div>
     );
 
 };
