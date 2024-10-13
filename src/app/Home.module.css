@@ -85,7 +85,22 @@
     font-weight: bold;
     /*margin-bottom: 30px;*/
 }
+@keyframes livingBot {
+    0%, 100% { transform: rotate(0deg); }
+    10% { transform: rotate(-12deg); }
+    20% { transform: rotate(12deg); }
+    30% { transform: rotate(-10deg); }
+    40% { transform: rotate(10deg); }
+    50% { transform: rotate(0deg); }
+    60% { transform: translateY(-9px); }
+    70% { transform: translateY(9px); }
+    80% { transform: translateY(-8px); }
+    90% { transform: translateY(8px); }
+}
 
+.livingLogo {
+    animation: livingBot 6s ease-in-out infinite;
+}
 /* Estilos para las pestañas (si se mantienen después del inicio de sesión) */
 .tabs {
     border-color: var(--techwave-border-color);

@@ -15,6 +15,7 @@ import axios from 'axios';
 import { useCourses } from "@/app/hook/CoursesProvider";
 import {ArrowLeftIcon, ArrowRightIcon, ChevronLeftIcon} from '@chakra-ui/icons';
 import styles from './ChatInterface.module.css';
+import ActiveChat from "@/app/components/ActiveChatProps";
 
 interface User {
     id: string;
@@ -298,111 +299,74 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, selectedCour
 
     return (
         <div className={styles.chatInterface}>
-            <HStack p={4} className={styles.header}>
-                <Heading size="md" className={styles.courseTitle}>{selectedCourseName}</Heading>
-            </HStack>
-            <Flex flex={1} className={styles.content}>
-                <VStack flex={1} spacing={4} align="stretch" p={4} overflowY="auto" className={styles.chatList}>
-                    <Input
-                        value={question}
-                        onChange={(e) => setQuestion(e.target.value)}
-                        placeholder="How can Claude help you today?"
-                        onKeyPress={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleStartNewChat();
-                            }
-                        }}
-                        className={styles.inputField}
-                    />
-                    <Heading size="sm" className={styles.sectionTitle}>Your chats</Heading>
-                    <List spacing={3} className={styles.chatItems}>
-                        {chatList.map((chat) => (
-                            <ListItem
-                                key={chat.id}
-                                p={2}
-                                className={styles.userMessage}
-                                onClick={() => selectChat(chat.id)}
-                            >
-                                <Text fontWeight="bold" color="white" className={styles.chatTitle}>
-                                    {chat.isTitleFinalized ? chat.finalTitle : chat.initialTitle}
-                                </Text>
-                                <Text fontSize="xs" color="white" className={styles.chatTimestamp}>
-                                    Last message: {new Date(chat.timestamp).toLocaleString()}
-                                </Text>
-                            </ListItem>
-                        ))}
-                    </List>
-                </VStack>
-                <VStack width="300px" spacing={4} align="stretch" p={4} bg="gray.700" overflowY="auto">
-                    <Heading size="sm" color="white">Course Documents</Heading>
-                    <List spacing={3}>
-                        {documents.map((doc) => (
-                            <ListItem
-                                key={doc.id}
-                                p={2}
-                                bg="gray.600"
-                                borderRadius="md"
-                            >
-                                <Text fontWeight="bold" fontSize="sm" color="white">{doc.file_name}</Text>
-                                <Text fontSize="xs" color="gray.300">
-                                    Last modified: {new Date(doc.last_modified).toLocaleString()}
-                                </Text>
-                            </ListItem>
-                        ))}
-                    </List>
-                </VStack>
-            </Flex>
-            {chatSessionId && (
-                <div className={styles.chatSession}>
-                    <div className={styles.chatSessionHeader}>
-                        <button
-                            aria-label="Back to chat list"
-                            onClick={() => setChatSessionId(null)}
-                            className={styles.backButton}
-                        >
-                            <ChevronLeftIcon/>
-                        </button>
-                        <h2 className={styles.chatSessionTitle}>{currentTopicTitle}</h2>
-                    </div>
-                    <div className={styles.chatHistory}  ref={chatHistoryRef}>
-                        {chatHistory?.map((message, index) => (
-                            <div
-                                key={index}
-                                className={`${styles.message} ${
-                                    message.type === 'user' ? styles.userMessage : styles.botMessage
-                                }`}
-                            >
-                                <div className="author">
-                                    <span>{message.type === 'user' ? 'You' : 'Bot'}</span>
-                                </div>
-                                <div className="chat">
-                                    <p>{message.content}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    <div className={styles.chatInput}>
-                        <input
-                            value={question}
-                            onChange={(e) => setQuestion(e.target.value)}
-                            placeholder="Type your message here..."
-                            onKeyPress={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSubmitQuestion();
-                                }
-                            }}
-                            className={styles.inputField}
-                        />
-                        <button
-                            onClick={handleSubmitQuestion}
-                            disabled={isLoading}
-                            className={styles.sendButton}
-                        >
-                            <ArrowRightIcon/>
-                        </button>
-                    </div>
+            {chatSessionId ? (
+                <ActiveChat
+                    chatSessionId={chatSessionId}
+                    currentTopicTitle={currentTopicTitle}
+                    chatHistory={chatHistory}
+                    question={question}
+                    isLoading={isLoading}
+                    onBackClick={() => setChatSessionId(null)}
+                    onQuestionChange={(e) => setQuestion(e.target.value)}
+                    onSubmitQuestion={handleSubmitQuestion}
+                />
+            ) : (
+                <div>
+                    <HStack p={4} className={styles.header}>
+                        <Heading size="md" className={styles.courseTitle}>{selectedCourseName}</Heading>
+                    </HStack>
+                    <Flex flex={1} className={styles.content}>
+                        <VStack flex={1} spacing={4} align="stretch" p={4} overflowY="auto" className={styles.chatList}>
+                            <Input
+                                value={question}
+                                onChange={(e) => setQuestion(e.target.value)}
+                                placeholder="How can Claude help you today?"
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleStartNewChat();
+                                    }
+                                }}
+                                className={styles.inputField}
+                            />
+                            <Heading size="sm" className={styles.sectionTitle}>Your chats</Heading>
+                            <List spacing={3} className={styles.chatItems}>
+                                {chatList.map((chat) => (
+                                    <ListItem
+                                        key={chat.id}
+                                        p={2}
+                                        className={styles.userMessage}
+                                        onClick={() => selectChat(chat.id)}
+                                    >
+                                        <Text fontWeight="bold" color="white" className={styles.chatTitle}>
+                                            {chat.isTitleFinalized ? chat.finalTitle : chat.initialTitle}
+                                        </Text>
+                                        <Text fontSize="xs" color="white" className={styles.chatTimestamp}>
+                                            Last message: {new Date(chat.timestamp).toLocaleString()}
+                                        </Text>
+                                    </ListItem>
+                                ))}
+                            </List>
+                        </VStack>
+                        <VStack width="300px" spacing={4} align="stretch" p={4} bg="gray.700" overflowY="auto">
+                            <Heading size="sm" color="white">Course Documents</Heading>
+                            <List spacing={3}>
+                                {documents.map((doc) => (
+                                    <ListItem
+                                        key={doc.id}
+                                        p={2}
+                                        bg="gray.600"
+                                        borderRadius="md"
+                                    >
+                                        <Text fontWeight="bold" fontSize="sm" color="white">{doc.file_name}</Text>
+                                        <Text fontSize="xs" color="gray.300">
+                                            Last modified: {new Date(doc.last_modified).toLocaleString()}
+                                        </Text>
+                                    </ListItem>
+                                ))}
+                            </List>
+                        </VStack>
+                    </Flex>
                 </div>
             )}
         </div>

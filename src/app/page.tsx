@@ -100,7 +100,7 @@ export default function Home() {
                             <Image
                                 src="/images/logo-preview.png"
                                 alt="Techwave Logo"
-                                className={styles.logo}
+                                className={`${styles.logo} ${styles.livingLogo}`}
                             />
                         </Box>
                         <VStack spacing={4} className={`${styles.formContent} form__content`}>
@@ -136,12 +136,15 @@ export default function Home() {
                                     className={styles.input}
                                 />
                             </Box>
-                            <Button onClick={handleAuth} className={`${styles.button} form__submit`} width="100%">
+                            <Button onClick={handleAuth} className={`${styles.button} techwave_fn_button`} width="100%">
                                 {isLogin ? 'Sign In' : 'Sign Up'}
                             </Button>
                             <Box className={`${styles.formAlternative} form__alternative`} width="100%">
-                                <Flex align="center" className="fn__lined_text">
-                                    <Divider className="line" />
+                                <Flex align="center" justify="center" position="relative">
+                                    <Divider />
+                                    <Text position="absolute" px={2} bg="#f5f5f5" color="gray.500">
+                                        OR
+                                    </Text>
                                 </Flex>
                                 <Button className={`${styles.button} techwave_fn_button`} width="100%" mt={4}>
                                     Sign in with Google
@@ -150,7 +153,7 @@ export default function Home() {
                         </VStack>
                         <Text className={`${styles.signDesc} sign__desc`} mt={4} textAlign="center">
                             {isLogin ? (
-                                <>Not a member? <Link onClick={toggleAuthMode} color="blue.500">Sign Up</Link></>
+                                <>Not a member? <Link onClick={toggleAuthMode} color="#8768f8">Sign Up</Link></>
                             ) : (
                                 <>Already have an account? <Link onClick={toggleAuthMode} color="blue.500">Sign In</Link></>
                             )}
