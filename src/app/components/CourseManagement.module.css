@@ -1,0 +1,83 @@
+.container {
+    width: 100%;
+    max-width: 1400px;
+    padding: 0 40px;
+    margin: 0 auto;
+    background-color: var(--techwave-site-bg-color);
+    color: var(--techwave-body-color);
+    font-family: var(--techwave-body-font-family);
+}
+
+/* Sección del Header */
+.header {
+    background-color: var(--techwave-header-bg-color);
+    padding: 20px;
+    border-radius: 5px;
+    text-align: center;
+}
+
+/* Sección de Formularios */
+.formSection {
+    background-color: var(--techwave-some-r-bg-color);
+    border: 1px solid var(--techwave-border-color);
+    border-radius: 5px;
+    padding: 20px;
+}
+
+/* Lista de Cursos */
+.courseList {
+    background-color: var(--techwave-some-a-bg-color);
+    border: 1px solid var(--techwave-border-color);
+    border-radius: 5px;
+    padding: 20px;
+}
+
+/* Lista de Archivos */
+.filesList {
+    background-color: var(--techwave-some-a-bg-color);
+    border: 1px solid var(--techwave-border-color);
+    border-radius: 5px;
+    padding: 20px;
+}
+
+/* Botones Personalizados */
+.button {
+    background-color: var(--techwave-main-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+}
+
+.button:hover {
+    opacity: 0.8;
+}
+
+/* Estilos para el Diálogo de Confirmación */
+.confirmDialog {
+    /* Añade estilos específicos si es necesario */
+}
+
+/* Otros estilos específicos */
+.sectionTitle {
+    color: var(--techwave-heading-color);
+    font-family: var(--techwave-heading-font-family);
+    margin-bottom: 10px;
+}
+
+.chatListItem {
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: var(--techwave-some-a-bg-color);
+    transition: background-color 0.2s;
+}
+
+.chatListItem:hover {
+    background-color: var(--techwave-main-color2);
+    color: white;
+}

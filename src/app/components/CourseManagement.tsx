@@ -18,7 +18,12 @@ import {
 } from '@chakra-ui/react';
 import axios from 'axios';
 import {useCourses} from "@/app/hook/CoursesProvider";
-
+import CourseFiles from "@/app/components/CourseFiles";
+import ConfirmationDialog from "@/app/components/ConfirmationDialog";
+import CourseForm from "@/app/components/CourseForm";
+import CourseNewList from "@/app/components/CourseNewList";
+import AssignedCourseList from "@/app/components/AssignedCourseList";
+import styles from './Home.module.css';
 
 interface Course {
     id: string;
@@ -53,6 +58,17 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
     const [fileToUpload, setFileToUpload] = useState<File | null>(null);
     const { userCourses, fetchUserCourses } = useCourses();
     const toast = useToast();
+
+    // Estados para edición y eliminación
+    const [courseToEdit, setCourseToEdit] = useState<{ id: string; name: string } | null>(null);
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [courseToDelete, setCourseToDelete] = useState<{ id: string; name: string } | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+    // Estados de carga
+    const [isCreating, setIsCreating] = useState(false);
+    const [isAssigning, setIsAssigning] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
         fetchAllCourses();
@@ -91,7 +107,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
             });
             return;
         }
-
+        setIsCreating(true);
         try {
             const response = await axios.post(`${API_URL}/courses`, { name: newCourseName });
             setCourses([...courses, response.data]);
@@ -113,6 +129,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
                 isClosable: true,
             });
         }
+        setIsCreating(false);
     };
 
     const handleAssignCourse = async () => {
@@ -126,7 +143,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
             });
             return;
         }
-
+        setIsAssigning(true);
         try {
             await axios.post(`${API_URL}/users/assign-course`, {
                 user_id: user.id,
@@ -150,6 +167,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
                 isClosable: true,
             });
         }
+        setIsAssigning(false);
     };
 
     const fetchCourseFiles = async (courseId: string) => {
@@ -161,6 +179,74 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
             toast({
                 title: 'Error',
                 description: 'Failed to fetch course files',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+            });
+        }
+    };
+
+    const handleEditCourse = (course: Course) => {
+        setCourseToEdit(course);
+        setIsEditMode(true);
+    };
+
+    const handleUpdateCourse = async (updatedName: string) => {
+        if (!courseToEdit) return;
+
+        setIsEditing(true);
+        try {
+            const response = await axios.put(`/courses/${courseToEdit.id}`, {
+                name: updatedName
+            });
+            setCourses(courses.map(course => course.id === courseToEdit.id ? response.data : course));
+            toast({
+                title: 'Course Updated',
+                description: `Course "${response.data.name}" has been updated successfully.`,
+                status: 'success',
+                duration: 3000,
+                isClosable: true,
+            });
+            setIsEditMode(false);
+            setCourseToEdit(null);
+        } catch (error) {
+            console.error('Error updating course:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to update course',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+            });
+        }
+        setIsEditing(false);
+    };
+
+    const handleDeleteCourse = (course: { id: string; name: string }) => {
+        setCourseToDelete(course);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const confirmDeleteCourse = async () => {
+        if (!courseToDelete) return;
+
+        try {
+            const response = await axios.delete(`/courses/${courseToDelete.id}`);
+            setCourses(courses.filter(course => course.id !== courseToDelete.id));
+            toast({
+                title: 'Course Deleted',
+                description: `Course "${courseToDelete.name}" has been deleted successfully.`,
+                status: 'success',
+                duration: 3000,
+                isClosable: true,
+            });
+            setIsDeleteDialogOpen(false);
+            setCourseToDelete(null);
+        } catch (error) {
+            console.error('Error deleting course:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to delete course',
                 status: 'error',
                 duration: 3000,
                 isClosable: true,
@@ -220,75 +306,108 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
     };
 
     return (
-        <VStack spacing={6} align="stretch">
+        <VStack spacing={6} align="stretch" p={6}>
+            {/* Header */}
             <Box>
                 <Heading size="lg" mb={4}>Course Management</Heading>
-                <Text mb={2}>Welcome, {user.name}!</Text>
             </Box>
 
+            {/* Crear Nuevo Curso */}
             <Box>
                 <Heading size="md" mb={2}>Create New Course</Heading>
-                <HStack>
-                    <Input
-                        placeholder="Enter course name"
-                        value={newCourseName}
-                        onChange={(e) => setNewCourseName(e.target.value)}
-                    />
-                    <Button colorScheme="blue" onClick={handleCreateCourse}>Create Course</Button>
-                </HStack>
+                <CourseForm
+                    onSubmit={handleCreateCourse}
+                    submitLabel="Create Course"
+                />
             </Box>
 
+            {/* Asignar Curso */}
             <Box>
                 <Heading size="md" mb={2}>Assign Course</Heading>
                 <HStack>
-                    <Select
-                        placeholder="Select a course"
-                        value={selectedCourse}
-                        onChange={(e) => setSelectedCourse(e.target.value)}
+                    <FormControl isRequired>
+                        <FormLabel>Select a Course</FormLabel>
+                        <Select
+                            placeholder="Select a course"
+                            value={selectedCourse}
+                            onChange={(e) => setSelectedCourse(e.target.value)}
+                        >
+                            {courses.map((course) => (
+                                <option key={course.id} value={course.id}>{course.name}</option>
+                            ))}
+                        </Select>
+                    </FormControl>
+                    <Button
+                        colorScheme="green"
+                        onClick={handleAssignCourse}
+                        isLoading={isAssigning}
+                        loadingText="Assigning"
                     >
-                        {courses.map((course) => (
-                            <option key={course.id} value={course.id}>{course.name}</option>
-                        ))}
-                    </Select>
-                    <Button colorScheme="green" onClick={handleAssignCourse}>Assign Course</Button>
+                        Assign Course
+                    </Button>
                 </HStack>
             </Box>
 
+            {/* Listado de Cursos Asignados */}
             <Box>
                 <Heading size="md" mb={2}>Your Assigned Courses</Heading>
-                <Table variant="simple">
-                    <Thead>
-                        <Tr>
-                            <Th>Course Name</Th>
-                        </Tr>
-                    </Thead>
-                    <Tbody>
-                        {userCourses.map((course) => (
-                            <Tr key={course.id}>
-                                <Td>{course.name}</Td>
-                            </Tr>
-                        ))}
-                    </Tbody>
-                </Table>
+                {userCourses.length > 0 ? (
+                    <AssignedCourseList assignedCourses={userCourses} />
+                ) : (
+                    <Text>No courses assigned yet.</Text>
+                )}
             </Box>
 
+            {/* Listado de Todos los Cursos con Opciones de Editar y Eliminar */}
+            <Box>
+                <Heading size="md" mb={2}>All Courses</Heading>
+                {courses.length > 0 ? (
+                    <CourseNewList
+                        courses={courses}
+                        onEdit={handleEditCourse}
+                        onDelete={handleDeleteCourse}
+                    />
+                ) : (
+                    <Text>No courses available.</Text>
+                )}
+            </Box>
+
+            {/* Formulario de Edición de Curso */}
+            {isEditMode && courseToEdit && (
+                <Box>
+                    <Heading size="md" mb={2}>Edit Course</Heading>
+                    <CourseForm
+                        onSubmit={handleUpdateCourse}
+                        initialValue={courseToEdit.name}
+                        submitLabel="Update Course"
+                    />
+                    <Button mt={2} onClick={() => setIsEditMode(false)}>
+                        Cancel
+                    </Button>
+                </Box>
+            )}
+
+            {/* Diálogo de Confirmación para Eliminación de Curso */}
+            {courseToDelete && (
+                <ConfirmationDialog
+                    isOpen={isDeleteDialogOpen}
+                    onClose={() => setIsDeleteDialogOpen(false)}
+                    onConfirm={confirmDeleteCourse}
+                    title="Delete Course"
+                    message={`Are you sure you want to delete the course "${courseToDelete.name}"? This action cannot be undone.`}
+                />
+            )}
+
+            {/* Gestión de Archivos del Curso Seleccionado */}
             {selectedCourse && (
                 <Box>
                     <Heading size="md" mb={2}>Course Files</Heading>
-                    <List spacing={3}>
-                        {courseFiles.map((file) => (
-                            <ListItem key={file.id}>
-                                {file.file_name} (Last modified: {new Date(file.last_modified).toLocaleString()})
-                            </ListItem>
-                        ))}
-                    </List>
-                    <FormControl mt={4}>
-                        <FormLabel>Upload New File</FormLabel>
-                        <Input type="file" onChange={handleFileUpload} />
-                    </FormControl>
-                    <Button mt={2} colorScheme="blue" onClick={uploadFile} isDisabled={!fileToUpload}>
-                        Upload File
-                    </Button>
+                    <CourseFiles
+                        courseId={selectedCourse}
+                        files={courseFiles}
+                        onFileUpload={() => fetchCourseFiles(selectedCourse)}
+                        onFileDelete={() => fetchCourseFiles(selectedCourse)}
+                    />
                 </Box>
             )}
         </VStack>
