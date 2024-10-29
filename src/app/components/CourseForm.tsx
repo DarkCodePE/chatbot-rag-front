@@ -19,17 +19,29 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSubmit, initialValue = '', su
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (courseName.trim().length < 3) {
+        const trimmedName = courseName.trim();
+        if (trimmedName.length < 3) {
             toast({
                 title: 'Invalid Name',
-                description: 'Course name must be at least 3 characters long.',
+                description: 'El nombre del curso debe tener al menos 3 caracteres.',
                 status: 'error',
                 duration: 3000,
                 isClosable: true,
             });
             return;
         }
-        onSubmit(courseName.trim());
+        // Validación de caracteres especiales
+        if (!/^[a-zA-Z0-9\s-]+$/.test(trimmedName)) {
+            toast({
+                title: 'Invalid Characters',
+                description: 'Course name can only contain letters, numbers, spaces, and hyphens.',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+            });
+            return;
+        }
+        onSubmit(trimmedName);
         setCourseName('');
     };
 

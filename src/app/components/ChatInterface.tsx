@@ -16,6 +16,10 @@ import { useCourses } from "@/app/hook/CoursesProvider";
 import {ArrowLeftIcon, ArrowRightIcon, ChevronLeftIcon} from '@chakra-ui/icons';
 import styles from './ChatInterface.module.css';
 import ActiveChat from "@/app/components/ActiveChatProps";
+import LoadingChatOverlay from "@/app/util/LoadingChatOverlay";
+import AnimatedLoadingOverlay from "@/app/util/AnimatedLoadingOverlayProps";
+import ProcessingChatOverlay from "@/app/util/ProcessingStepProps";
+import ErrorDisplay, {useChatState, useErrorHandler} from "@/app/util/ErrorDisplay";
 
 interface User {
     id: string;
@@ -61,6 +65,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, selectedCour
     const [isTitleFinalized, setIsTitleFinalized] = useState(false);
     const [documents, setDocuments] = useState<Document[]>([]);
     const [showChatList, setShowChatList] = useState(true);
+
+    // Usar los hooks personalizados de manejo de errores y estado del chat
+    const { error, handleError, clearError, showToast } = useErrorHandler();
+    const { isProcessing, processingProgress, handleStartNewChat } = useChatState(handleError);
+
     const chatHistoryRef = React.useRef<HTMLDivElement>(null);
     const toast = useToast();
 
@@ -129,42 +138,56 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, selectedCour
         }
     }, [selectedCourse, toast]);
 
-    const handleStartNewChat = async () => {
+
+
+    const handleStartChat = async () => {
         if (!selectedCourse || !question.trim()) return;
-        setIsLoading(true);
-        try {
-            const response = await axios.post(`${API_URL}/chat/start`, {
-                user_id: user.id,
-                course_id: selectedCourse,
-                initial_question: question
-            });
 
-            setChatSessionId(response.data.chat_session_id);
-            setTopicId(response.data.topic_id); // Establecer topicId desde la respuesta
-            setCurrentTopicTitle(response.data.topic_title);
-            setChatHistory([
-                { type: 'user', content: question },
-                { type: 'bot', content: response.data.initial_answer?.response || 'No response available.' } // Añadir la respuesta inicial al historial
-            ]);
-            setShowChatList(false);
+        await handleStartNewChat(
+            question,
+            user.id,
+            selectedCourse,
+            {
+                onSuccess: (data) => {
+                    // Manejar la respuesta exitosa
+                    setChatSessionId(data.chat_session_id);
+                    setTopicId(data.topic_id);
+                    setCurrentTopicTitle(data.topic_title);
+                    setChatHistory([
+                        { type: 'user', content: question },
+                        { type: 'bot', content: data.initial_answer?.response || 'No response available.' }
+                    ]);
+                    setShowChatList(false);
 
-            // Si necesitas utilizar title_task_id para verificar el estado de generación del título
-            if (response.data.title_task_id) {
-                setTitleTaskId(response.data.title_task_id);
+                    if (data.title_task_id) {
+                        setTitleTaskId(data.title_task_id);
+                    }
+
+                    // Limpiar el input
+                    setQuestion('');
+                },
+                onError: () => {
+                    // Manejar el error (opcional, ya que el hook ya maneja los errores)
+                    console.log('Error starting chat - keeping question for retry');
+                }
             }
+        );
+    };
+    // Y actualiza la función handleRetry para mantener la misma lógica
+    const handleRetry = async () => {
+        try {
+            clearError(); // Limpia el error actual
+            setIsLoading(true);
 
+            if (question.trim()) {
+                await handleStartChat();
+            }
         } catch (error) {
-            console.error('Error starting new chat:', error);
-            toast({
-                title: 'Error',
-                description: 'Failed to start new chat',
-                status: 'error',
-                duration: 3000,
-                isClosable: true,
-            });
+            handleError(error);
+            // No limpiar la pregunta en caso de error
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
-        setQuestion('');
     };
 
     const handleSubmitQuestion = async () => {
@@ -296,9 +319,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, selectedCour
     };
 
     const selectedCourseName = userCourses.find(course => course.id === selectedCourse)?.name || 'Selected Course';
-
+0
     return (
         <div className={styles.chatInterface}>
+            {/* Mostrar el error si existe */}
+            {error && (
+                <ErrorDisplay
+                    error={error}
+                    onRetry={handleRetry}
+                    onClose={clearError}
+                />
+            )}
+            <ProcessingChatOverlay
+                isVisible={isProcessing}
+                onComplete={() => {
+                    // No necesitas setIsProcessing(false) aquí ya que useChatState lo maneja
+                    console.log('Processing completed');
+                }}
+                progress={processingProgress}  // Ahora será válido
+            />
             {chatSessionId ? (
                 <ActiveChat
                     chatSessionId={chatSessionId}
@@ -317,18 +356,40 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, selectedCour
                     </HStack>
                     <Flex flex={1} className={styles.content}>
                         <VStack flex={1} spacing={4} align="stretch" p={4} overflowY="auto" className={styles.chatList}>
-                            <Input
-                                value={question}
-                                onChange={(e) => setQuestion(e.target.value)}
-                                placeholder="How can Claude help you today?"
-                                onKeyPress={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleStartNewChat();
-                                    }
-                                }}
-                                className={styles.inputField}
-                            />
+                            <Box position="relative">
+                                <Input
+                                    value={question}
+                                    onChange={(e) => setQuestion(e.target.value)}
+                                    placeholder="How can Claude help you today?"
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleStartChat();
+                                        }
+                                    }}
+                                    className={styles.inputField}
+                                    isDisabled={isProcessing}  // Cambiar isStartingChat por isProcessing
+                                    _disabled={{
+                                        opacity: 0.7,
+                                        cursor: 'not-allowed'
+                                    }}
+                                />
+                                {question.trim() && !isProcessing && ( // Cambiar isStartingChat por isProcessing
+                                    <Button
+                                        position="absolute"
+                                        right="2"
+                                        top="50%"
+                                        transform="translateY(-50%)"
+                                        size="sm"
+                                        colorScheme="blue"
+                                        onClick={handleStartChat}
+                                        isLoading={isProcessing}  // Cambiar isStartingChat por isProcessing
+                                        loadingText="Starting..."
+                                    >
+                                        Start Chat
+                                    </Button>
+                                )}
+                            </Box>
                             <Heading size="sm" className={styles.sectionTitle}>Your chats</Heading>
                             <List spacing={3} className={styles.chatItems}>
                                 {chatList.map((chat) => (

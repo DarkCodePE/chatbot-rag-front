@@ -24,15 +24,24 @@ import CourseForm from "@/app/components/CourseForm";
 import CourseNewList from "@/app/components/CourseNewList";
 import AssignedCourseList from "@/app/components/AssignedCourseList";
 import styles from './Home.module.css';
-
-interface Course {
-    id: string;
-    name: string;
-}
+import CourseFolderView from "@/app/components/CourseFolderView";
+import CourseDetailView from "@/app/components/CourseDetailView";
+import AddUserModal from "@/app/modal/AddUserModal";
+import RemoveUserDialog from "@/app/modal/RemoveUserDialogProps";
 
 interface User {
     id: string;
     name: string;
+    email: string;
+}
+
+interface Course {
+    id: string;
+    name: string;
+    google_drive_folder_id: string;
+    created_at: string;
+    updated_at: string | null;
+    users: User[];
 }
 
 interface ProcessedDocument {
@@ -69,6 +78,13 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
     const [isCreating, setIsCreating] = useState(false);
     const [isAssigning, setIsAssigning] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    // Cargar usuarios asignados
+    const [selectedCourseDetails, setSelectedCourseDetails] = useState<Course | null>(null);
+    const [assignedUsers, setAssignedUsers] = useState<User[]>([]);
+    const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+    //desasignar users
+    const [userToRemove, setUserToRemove] = useState<{id: string; name: string} | null>(null);
+    const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
 
     useEffect(() => {
         fetchAllCourses();
@@ -96,40 +112,94 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
         }
     };
 
-    const handleCreateCourse = async () => {
-        if (!newCourseName.trim()) {
-            toast({
-                title: 'Error',
-                description: 'Course name cannot be empty',
-                status: 'error',
-                duration: 3000,
-                isClosable: true,
-            });
-            return;
+    const handleSelectCourse = async (course: Course) => {
+        setSelectedCourseDetails(course);
+        // Cargar archivos
+        await fetchCourseFiles(course.id);
+        // Cargar usuarios asignados
+        //await fetchCourseUsers(course.id);
+    };
+
+    const handleAddUser = () => {
+        setIsAddUserModalOpen(true);
+    };
+
+    //función para manejar cuando se agregan usuarios
+    const handleUserAdded = async () => {
+        if (selectedCourseDetails) {
+            try {
+                // Obtener los datos actualizados del curso directamente de la API
+                const response = await axios.get(`${API_URL}/courses/${selectedCourseDetails.id}`);
+                const updatedCourse = response.data;
+
+                // Actualizar el curso seleccionado con los nuevos datos
+                setSelectedCourseDetails(updatedCourse);
+
+                // Actualizar la lista completa de cursos
+                const coursesResponse = await axios.get(`${API_URL}/courses`);
+                setCourses(coursesResponse.data);
+
+                toast({
+                    title: 'Success',
+                    description: 'User added successfully',
+                    status: 'success',
+                    duration: 3000,
+                    isClosable: true,
+                });
+            } catch (error) {
+                console.error('Error updating course details:', error);
+                toast({
+                    title: 'Error',
+                    description: 'Failed to update course details',
+                    status: 'error',
+                    duration: 3000,
+                    isClosable: true,
+                });
+            }
         }
-        setIsCreating(true);
+    };
+    const handleRemoveUser = (userId: string) => {
+        const userToRemove = selectedCourseDetails?.users.find(u => u.id === userId);
+        if (userToRemove) {
+            setUserToRemove(userToRemove);
+            setIsRemoveDialogOpen(true);
+        }
+    };
+
+    const handleConfirmRemove = async () => {
+        if (!userToRemove || !selectedCourseDetails) return;
+
         try {
-            const response = await axios.post(`${API_URL}/courses`, { name: newCourseName });
-            setCourses([...courses, response.data]);
-            setNewCourseName('');
+            await axios.delete(`${API_URL}/courses/${selectedCourseDetails.id}/users/${userToRemove.id}`);
+
+            // Obtener los datos actualizados del curso
+            const response = await axios.get(`${API_URL}/courses/${selectedCourseDetails.id}`);
+            setSelectedCourseDetails(response.data);
+
+            // Actualizar la lista completa de cursos
+            const coursesResponse = await axios.get(`${API_URL}/courses`);
+            setCourses(coursesResponse.data);
+
             toast({
-                title: 'Course Created',
-                description: `Course "${response.data.name}" has been created successfully.`,
+                title: 'Success',
+                description: `${userToRemove.name} has been removed from the course`,
                 status: 'success',
                 duration: 3000,
                 isClosable: true,
             });
         } catch (error) {
-            console.error('Error creating course:', error);
+            console.error('Error removing user:', error);
             toast({
                 title: 'Error',
-                description: 'Failed to create course',
+                description: 'Failed to remove user from course',
                 status: 'error',
                 duration: 3000,
                 isClosable: true,
             });
+        } finally {
+            setIsRemoveDialogOpen(false);
+            setUserToRemove(null);
         }
-        setIsCreating(false);
     };
 
     const handleAssignCourse = async () => {
@@ -196,7 +266,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
 
         setIsEditing(true);
         try {
-            const response = await axios.put(`/courses/${courseToEdit.id}`, {
+            const response = await axios.put(`${API_URL}/courses/${courseToEdit.id}`, {
                 name: updatedName
             });
             setCourses(courses.map(course => course.id === courseToEdit.id ? response.data : course));
@@ -231,8 +301,13 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
         if (!courseToDelete) return;
 
         try {
-            const response = await axios.delete(`/courses/${courseToDelete.id}`);
+            const response = await axios.delete(`${API_URL}/courses/${courseToDelete.id}`);
             setCourses(courses.filter(course => course.id !== courseToDelete.id));
+            // Limpiar la selección de curso y archivos si el curso eliminado era el seleccionado
+            if (selectedCourse === courseToDelete.id) {
+                setSelectedCourse(''); // Limpiar curso seleccionado
+                setCourseFiles([]); // Limpiar lista de archivos
+            }
             toast({
                 title: 'Course Deleted',
                 description: `Course "${courseToDelete.name}" has been deleted successfully.`,
@@ -306,110 +381,64 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
     };
 
     return (
+
         <VStack spacing={6} align="stretch" p={6}>
-            {/* Header */}
-            <Box>
-                <Heading size="lg" mb={4}>Course Management</Heading>
-            </Box>
-
-            {/* Crear Nuevo Curso */}
-            <Box>
-                <Heading size="md" mb={2}>Create New Course</Heading>
-                <CourseForm
-                    onSubmit={handleCreateCourse}
-                    submitLabel="Create Course"
-                />
-            </Box>
-
-            {/* Asignar Curso */}
-            <Box>
-                <Heading size="md" mb={2}>Assign Course</Heading>
-                <HStack>
-                    <FormControl isRequired>
-                        <FormLabel>Select a Course</FormLabel>
-                        <Select
-                            placeholder="Select a course"
-                            value={selectedCourse}
-                            onChange={(e) => setSelectedCourse(e.target.value)}
-                        >
-                            {courses.map((course) => (
-                                <option key={course.id} value={course.id}>{course.name}</option>
-                            ))}
-                        </Select>
-                    </FormControl>
-                    <Button
-                        colorScheme="green"
-                        onClick={handleAssignCourse}
-                        isLoading={isAssigning}
-                        loadingText="Assigning"
-                    >
-                        Assign Course
-                    </Button>
-                </HStack>
-            </Box>
-
-            {/* Listado de Cursos Asignados */}
-            <Box>
-                <Heading size="md" mb={2}>Your Assigned Courses</Heading>
-                {userCourses.length > 0 ? (
-                    <AssignedCourseList assignedCourses={userCourses} />
-                ) : (
-                    <Text>No courses assigned yet.</Text>
-                )}
-            </Box>
-
-            {/* Listado de Todos los Cursos con Opciones de Editar y Eliminar */}
-            <Box>
-                <Heading size="md" mb={2}>All Courses</Heading>
-                {courses.length > 0 ? (
-                    <CourseNewList
-                        courses={courses}
-                        onEdit={handleEditCourse}
-                        onDelete={handleDeleteCourse}
-                    />
-                ) : (
-                    <Text>No courses available.</Text>
-                )}
-            </Box>
-
-            {/* Formulario de Edición de Curso */}
-            {isEditMode && courseToEdit && (
-                <Box>
-                    <Heading size="md" mb={2}>Edit Course</Heading>
-                    <CourseForm
-                        onSubmit={handleUpdateCourse}
-                        initialValue={courseToEdit.name}
-                        submitLabel="Update Course"
-                    />
-                    <Button mt={2} onClick={() => setIsEditMode(false)}>
-                        Cancel
-                    </Button>
-                </Box>
-            )}
-
-            {/* Diálogo de Confirmación para Eliminación de Curso */}
-            {courseToDelete && (
-                <ConfirmationDialog
-                    isOpen={isDeleteDialogOpen}
-                    onClose={() => setIsDeleteDialogOpen(false)}
-                    onConfirm={confirmDeleteCourse}
-                    title="Delete Course"
-                    message={`Are you sure you want to delete the course "${courseToDelete.name}"? This action cannot be undone.`}
-                />
-            )}
-
-            {/* Gestión de Archivos del Curso Seleccionado */}
-            {selectedCourse && (
-                <Box>
-                    <Heading size="md" mb={2}>Course Files</Heading>
-                    <CourseFiles
-                        courseId={selectedCourse}
+            {selectedCourseDetails ? (
+                <>
+                    <CourseDetailView
+                        course={selectedCourseDetails}
                         files={courseFiles}
-                        onFileUpload={() => fetchCourseFiles(selectedCourse)}
-                        onFileDelete={() => fetchCourseFiles(selectedCourse)}
+                        onAddUser={handleAddUser}
+                        onBack={() => setSelectedCourseDetails(null)}
+                        onRemoveUser={handleRemoveUser}
+                        onFileUpload={() => fetchCourseFiles(selectedCourseDetails.id)}
+                        onFileDelete={() => fetchCourseFiles(selectedCourseDetails.id)}
                     />
-                </Box>
+                    {/* Modal para agregar usuarios al curso */}
+                    <AddUserModal
+                        isOpen={isAddUserModalOpen}
+                        onClose={() => setIsAddUserModalOpen(false)}
+                        courseId={selectedCourseDetails.id}
+                        onUserAdded={handleUserAdded}
+                    />
+                    {/* Modal de confirmación desasignar usuarios */}
+                    <RemoveUserDialog
+                        isOpen={isRemoveDialogOpen}
+                        onClose={() => {
+                            setIsRemoveDialogOpen(false);
+                            setUserToRemove(null);
+                        }}
+                        onConfirm={handleConfirmRemove}
+                        userName={userToRemove?.name || ''}
+                    />
+                </>
+            ) : (
+                <>
+                    <Box>
+                        <Heading size="lg" mb={4}>Course Management</Heading>
+                    </Box>
+                    <Box>
+                        <Heading size="md" mb={4}>All Courses</Heading>
+                        <CourseFolderView
+                            courses={courses.map(course => ({
+                                ...course,
+                                filesCount: courseFiles.filter(f => f.course_id === course.id).length,
+                                storageUsage: '0 MB'
+                            }))}
+                            onSelect={handleSelectCourse}
+                            onEdit={handleEditCourse}
+                            onDelete={handleDeleteCourse}
+                        />
+                    </Box>
+                </>
             )}
+            <input
+                type="file"
+                id="fileInput"
+                style={{ display: 'none' }}
+                onChange={handleFileUpload}
+            />
         </VStack>
+
     );
 };
