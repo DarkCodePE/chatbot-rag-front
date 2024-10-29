@@ -29,6 +29,7 @@ import CourseDetailView from "@/app/components/CourseDetailView";
 import AddUserModal from "@/app/modal/AddUserModal";
 import RemoveUserDialog from "@/app/modal/RemoveUserDialogProps";
 import {User} from "@/app/types/user";
+import EmptyCourseState from "@/app/components/EmptyCourseState";
 
 
 interface Course {
@@ -331,6 +332,9 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
             setFileToUpload(file);
         }
     };
+    const handleCourseCreated = (newCourse) => {
+        setCourses(prevCourses => [...prevCourses, newCourse]);
+    };
 
     return (
 
@@ -371,16 +375,20 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
                     </Box>
                     <Box>
                         <Heading size="md" mb={4}>All Courses</Heading>
-                        <CourseFolderView
-                            courses={courses.map(course => ({
-                                ...course,
-                                filesCount: courseFiles.filter(f => f.course_id === course.id).length,
-                                storageUsage: '0 MB'
-                            }))}
-                            onSelect={handleSelectCourse}
-                            onEdit={handleEditCourse}
-                            onDelete={handleDeleteCourse}
-                        />
+                        {courses.length === 0 ? (
+                            <EmptyCourseState onCourseCreated={handleCourseCreated} />
+                        ) : (
+                            <CourseFolderView
+                                courses={courses.map(course => ({
+                                    ...course,
+                                    filesCount: courseFiles.filter(f => f.course_id === course.id).length,
+                                    storageUsage: '0 MB'
+                                }))}
+                                onSelect={handleSelectCourse}
+                                onEdit={handleEditCourse}
+                                onDelete={handleDeleteCourse}
+                            />
+                        )}
                     </Box>
                 </>
             )}
