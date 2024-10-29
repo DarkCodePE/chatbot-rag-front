@@ -16,10 +16,22 @@ import {
 } from '@chakra-ui/react';
 import { Plus, FolderPlus } from 'lucide-react';
 import axios from 'axios';
+import {User} from "@/app/types/user";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL_PROD || 'https://orlandokuan.org';
+interface Course {
+    id: string;
+    name: string;
+    google_drive_folder_id: string;
+    created_at: string;
+    updated_at: string | null;
+    users: User[];
+}
 
-const EmptyCourseState = ({ onCourseCreated }) => {
+interface EmptyCourseStateProps {
+    onCourseCreated: (course: Course) => void;
+}
+const EmptyCourseState: React.FC<EmptyCourseStateProps> = ({ onCourseCreated }) => {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const [newCourseName, setNewCourseName] = useState('');
     const [isCreating, setIsCreating] = useState(false);

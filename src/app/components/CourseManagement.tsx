@@ -332,7 +332,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
             setFileToUpload(file);
         }
     };
-    const handleCourseCreated = (newCourse) => {
+    const handleCourseCreated = (newCourse: Course) => {
         setCourses(prevCourses => [...prevCourses, newCourse]);
     };
 
