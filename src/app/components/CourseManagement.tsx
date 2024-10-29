@@ -28,12 +28,8 @@ import CourseFolderView from "@/app/components/CourseFolderView";
 import CourseDetailView from "@/app/components/CourseDetailView";
 import AddUserModal from "@/app/modal/AddUserModal";
 import RemoveUserDialog from "@/app/modal/RemoveUserDialogProps";
+import {User} from "@/app/types/user";
 
-interface User {
-    id: string;
-    name: string;
-    email: string;
-}
 
 interface Course {
     id: string;
@@ -159,7 +155,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
         }
     };
     const handleRemoveUser = (userId: string) => {
-        const userToRemove = selectedCourseDetails?.users.find(u => u.id === userId);
+        const userToRemove = selectedCourseDetails?.users?.find((user: User) => user.id === userId);
         if (userToRemove) {
             setUserToRemove(userToRemove);
             setIsRemoveDialogOpen(true);
@@ -333,50 +329,6 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
         const file = event.target.files?.[0];
         if (file) {
             setFileToUpload(file);
-        }
-    };
-
-    const uploadFile = async () => {
-        if (!selectedCourse || !fileToUpload) {
-            toast({
-                title: 'Error',
-                description: 'Please select a course and a file to upload',
-                status: 'error',
-                duration: 3000,
-                isClosable: true,
-            });
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('course_id', selectedCourse);
-        formData.append('file', fileToUpload);
-
-        try {
-            await axios.post(`${API_URL}/upload-document`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
-
-            toast({
-                title: 'File Uploaded',
-                description: 'The file has been uploaded successfully.',
-                status: 'success',
-                duration: 3000,
-                isClosable: true,
-            });
-            fetchCourseFiles(selectedCourse);
-            setFileToUpload(null);
-        } catch (error) {
-            console.error('Error uploading file:', error);
-            toast({
-                title: 'Error',
-                description: 'Failed to upload file',
-                status: 'error',
-                duration: 3000,
-                isClosable: true,
-            });
         }
     };
 

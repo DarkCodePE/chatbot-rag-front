@@ -26,13 +26,8 @@ import {ChatInterface} from "@/app/components/ChatInterface";
 import styles from './Home.module.css';
 import {CourseList} from "@/app/components/CourseList";
 import customTheme from "@/app/theme";
+import {User} from "@/app/types/user";
 
-
-interface User {
-    id: string;
-    name: string;
-    session_id: string;
-}
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL_PROD || 'https://orlandokuan.org';
 
