@@ -1,6 +1,7 @@
 import React from 'react';
 import { Grid, Box, HStack, Text, Menu, MenuButton, MenuList, MenuItem, IconButton, VStack } from '@chakra-ui/react';
 import { FolderIcon, MoreVertical } from 'lucide-react';
+import {User} from "@/app/types/user";
 
 interface Course {
     id: string;
@@ -13,11 +14,7 @@ interface Course {
     storageUsage?: string;
 }
 
-interface User {
-    id: string;
-    name: string;
-    email: string;
-}
+
 interface CourseFolderViewProps {
     courses: Course[];
     onEdit?: (course: Course) => void;
