@@ -1,7 +1,21 @@
 import React from 'react';
-import { Grid, Box, HStack, Text, Menu, MenuButton, MenuList, MenuItem, IconButton, VStack } from '@chakra-ui/react';
-import { FolderIcon, MoreVertical } from 'lucide-react';
+import {
+    Grid,
+    Box,
+    HStack,
+    Text,
+    Menu,
+    MenuButton,
+    MenuList,
+    MenuItem,
+    IconButton,
+    VStack,
+    useDisclosure,
+    Center
+} from '@chakra-ui/react';
+import {FolderIcon, MoreVertical, Plus} from 'lucide-react';
 import {User} from "@/app/types/user";
+import CreateCourseModal from "@/app/modal/CreateCourseModalProps";
 
 interface Course {
     id: string;
@@ -20,14 +34,17 @@ interface CourseFolderViewProps {
     onEdit?: (course: Course) => void;
     onDelete?: (course: Course) => void;
     onSelect?: (course: Course) => void;
+    onCourseCreated: (course: Course) => void;
 }
 
 const CourseFolderView: React.FC<CourseFolderViewProps> = ({
                                                                courses,
                                                                onEdit,
                                                                onDelete,
-                                                               onSelect
+                                                               onSelect,
+                                                               onCourseCreated
                                                            }) => {
+    const { isOpen, onOpen, onClose } = useDisclosure();
     return (
         <Box>
             <Text mb={4} fontWeight="medium" color="gray.500">
@@ -107,7 +124,48 @@ const CourseFolderView: React.FC<CourseFolderViewProps> = ({
                         </VStack>
                     </Box>
                 ))}
+                <Box
+                    bg="white"
+                    p={4}
+                    borderRadius="lg"
+                    boxShadow="sm"
+                    cursor="pointer"
+                    onClick={onOpen}
+                    transition="all 0.2s"
+                    _hover={{
+                        transform: 'translateY(-2px)',
+                        boxShadow: 'md'
+                    }}
+                    borderWidth="2px"
+                    borderStyle="dashed"
+                    borderColor="gray.200"
+                    height="full"
+                >
+                    <Center height="full">
+                        <VStack spacing={3}>
+                            <Box
+                                p={3}
+                                borderRadius="full"
+                                bg="gray.50"
+                            >
+                                <Plus
+                                    size={24}
+                                    className="text-gray-400"
+                                />
+                            </Box>
+                            <Text color="gray.500" fontWeight="medium">
+                                Add New Course
+                            </Text>
+                        </VStack>
+                    </Center>
+                </Box>
             </Grid>
+
+            <CreateCourseModal
+                isOpen={isOpen}
+                onClose={onClose}
+                onCourseCreated={onCourseCreated}
+            />
         </Box>
     );
 };

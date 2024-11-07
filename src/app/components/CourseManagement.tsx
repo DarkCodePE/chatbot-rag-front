@@ -332,8 +332,31 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
             setFileToUpload(file);
         }
     };
-    const handleCourseCreated = (newCourse: Course) => {
-        setCourses(prevCourses => [...prevCourses, newCourse]);
+    const handleCourseCreated = async (newCourse: Course) => {
+        try {
+            // Actualizar el estado local
+            setCourses(prevCourses => [...prevCourses, newCourse]);
+
+            // Opcionalmente, recargar todos los cursos para asegurar datos actualizados
+            await fetchAllCourses();
+
+            toast({
+                title: 'Success',
+                description: 'Course created successfully',
+                status: 'success',
+                duration: 3000,
+                isClosable: true,
+            });
+        } catch (error) {
+            console.error('Error creating course:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to create course',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+            });
+        }
     };
 
     return (
@@ -387,6 +410,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ user }) => {
                                 onSelect={handleSelectCourse}
                                 onEdit={handleEditCourse}
                                 onDelete={handleDeleteCourse}
+                                onCourseCreated={handleCourseCreated}
                             />
                         )}
                     </Box>

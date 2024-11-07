@@ -7,9 +7,15 @@ interface CourseFormProps {
     onSubmit: (courseName: string) => void;
     initialValue?: string;
     submitLabel: string;
+    isDisabled?: boolean;
 }
 
-const CourseForm: React.FC<CourseFormProps> = ({ onSubmit, initialValue = '', submitLabel }) => {
+const CourseForm: React.FC<CourseFormProps> = ({
+                                                   onSubmit,
+                                                   initialValue = '',
+                                                   submitLabel,
+                                                   isDisabled = false
+                                               }) => {
     const [courseName, setCourseName] = useState(initialValue);
     const toast = useToast();
 
@@ -20,6 +26,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSubmit, initialValue = '', su
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const trimmedName = courseName.trim();
+
         if (trimmedName.length < 3) {
             toast({
                 title: 'Invalid Name',
@@ -30,7 +37,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSubmit, initialValue = '', su
             });
             return;
         }
-        // Validación de caracteres especiales
+
         if (!/^[a-zA-Z0-9\s-]+$/.test(trimmedName)) {
             toast({
                 title: 'Invalid Characters',
@@ -41,6 +48,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSubmit, initialValue = '', su
             });
             return;
         }
+
         onSubmit(trimmedName);
         setCourseName('');
     };
@@ -55,9 +63,15 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSubmit, initialValue = '', su
                         value={courseName}
                         onChange={(e) => setCourseName(e.target.value)}
                         className={styles.input}
+                        isDisabled={isDisabled}
                     />
                 </FormControl>
-                <Button type="submit" className={styles.button}>
+                <Button
+                    type="submit"
+                    className={styles.button}
+                    isLoading={isDisabled}
+                    isDisabled={isDisabled}
+                >
                     {submitLabel}
                 </Button>
             </HStack>
